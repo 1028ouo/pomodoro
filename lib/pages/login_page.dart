@@ -13,6 +13,7 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
+  final _forgotPasswordEmailController = TextEditingController();
   bool _isObscure = true;
   bool _isLogin = true; // 控制顯示登入或註冊表單
   final AuthService _authService = AuthService();
@@ -23,6 +24,7 @@ class _LoginPageState extends State<LoginPage> {
     _usernameController.dispose();
     _passwordController.dispose();
     _emailController.dispose();
+    _forgotPasswordEmailController.dispose();
     super.dispose();
   }
 
@@ -129,13 +131,101 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // 顯示忘記密碼對話框
+  void _showForgotPasswordDialog() {
+    _forgotPasswordEmailController.clear(); // 清除之前的輸入
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('重設密碼'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('請輸入你的電子郵件地址，我們會發送重設密碼的連結給你。'),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _forgotPasswordEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: '電子郵件',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (_forgotPasswordEmailController.text.isNotEmpty) {
+                    _handleForgotPassword();
+                    Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('請輸入電子郵件')));
+                  }
+                },
+                child: const Text('送出'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // 處理忘記密碼請求
+  Future<void> _handleForgotPassword() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('處理中...')));
+
+      final result = await _authService.forgotPassword(
+        _forgotPasswordEmailController.text,
+      );
+
+      if (result['success']) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? '重設密碼連結已發送至您的電子郵件')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('失敗: ${result['message']}')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('發生錯誤: ${e.toString()}')));
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isLogin ? 'Pomodoro 登入' : 'Pomodoro 註冊'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -145,10 +235,13 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Icon(
-                    Icons.timer,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
+                  Text(
+                    'Pomodoro',
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 40),
                   TextFormField(
@@ -244,7 +337,7 @@ class _LoginPageState extends State<LoginPage> {
                   if (_isLogin)
                     TextButton(
                       onPressed: () {
-                        // 忘記密碼邏輯
+                        _showForgotPasswordDialog();
                       },
                       child: const Text('忘記密碼？'),
                     ),

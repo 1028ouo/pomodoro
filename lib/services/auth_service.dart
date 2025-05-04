@@ -78,4 +78,31 @@ class AuthService {
       };
     }
   }
+
+  // 忘記密碼方法
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    var request = http.Request(
+      'POST',
+      Uri.parse('$baseUrl/users/forgot_password'),
+    );
+
+    request.body = json.encode({
+      "user": {"email": email},
+    });
+
+    request.headers.addAll(headers);
+
+    http.StreamedResponse response = await request.send();
+    final responseBody = await response.stream.bytesToString();
+    final responseData = json.decode(responseBody);
+
+    if (response.statusCode == 200) {
+      return {'success': true, 'message': responseData['message']};
+    } else {
+      return {
+        'success': false,
+        'message': responseData['message'] ?? response.reasonPhrase,
+      };
+    }
+  }
 }

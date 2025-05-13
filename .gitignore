@@ -47,3 +47,4 @@ app.*.map.json
 # 敏感資訊配置檔案
 lib/config/env_config.dart
 lib/config/
+ios/Runner/Info.plist

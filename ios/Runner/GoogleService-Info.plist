@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>1056908282428-chnta2pca2sg2us6mvj16fkv2nvds8ra.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1056908282428-chnta2pca2sg2us6mvj16fkv2nvds8ra</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCUpw8ZULzkeuvTHLku0j_HuX5GGKN3Lf8</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1056908282428</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.pomodoro</string>
+	<key>PROJECT_ID</key>
+	<string>flutter-final-project-25d65</string>
+	<key>STORAGE_BUCKET</key>
+	<string>flutter-final-project-25d65.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1056908282428:ios:7fa25e2773119a6c3b1139</string>
+</dict>
+</plist>

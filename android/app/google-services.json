@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1056908282428",
+    "project_id": "flutter-final-project-25d65",
+    "storage_bucket": "flutter-final-project-25d65.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1056908282428:android:50292a350f2767203b1139",
+        "android_client_info": {
+          "package_name": "com.example.pomodoro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1056908282428-ngdvk3p5g7lnm473jobcrr0odbhovcap.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbysuLRyVlG_zYa6wsrEHlpbY7gwtiCts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1056908282428-ngdvk3p5g7lnm473jobcrr0odbhovcap.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1056908282428-chnta2pca2sg2us6mvj16fkv2nvds8ra.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.pomodoro"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

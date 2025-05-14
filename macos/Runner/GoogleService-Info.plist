@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>1056908282428-chnta2pca2sg2us6mvj16fkv2nvds8ra.apps.googleusercontent.com</string>
+	<string>240984632507-f8ethoorbscpb3btkmctso8pmlubnvmq.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1056908282428-chnta2pca2sg2us6mvj16fkv2nvds8ra</string>
+	<string>com.googleusercontent.apps.240984632507-f8ethoorbscpb3btkmctso8pmlubnvmq</string>
 	<key>API_KEY</key>
-	<string>AIzaSyCUpw8ZULzkeuvTHLku0j_HuX5GGKN3Lf8</string>
+	<string>AIzaSyBxebjBR3F2c1yxdPEpEjzA6nIu2JbAtEE</string>
 	<key>GCM_SENDER_ID</key>
-	<string>1056908282428</string>
+	<string>240984632507</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.example.pomodoro</string>
 	<key>PROJECT_ID</key>
-	<string>flutter-final-project-25d65</string>
+	<string>flutter-final-project-5c31a</string>
 	<key>STORAGE_BUCKET</key>
-	<string>flutter-final-project-25d65.firebasestorage.app</string>
+	<string>flutter-final-project-5c31a.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1056908282428:ios:7fa25e2773119a6c3b1139</string>
+	<string>1:240984632507:ios:2d8e771f1ba0dfedb68d9e</string>
 </dict>
 </plist>

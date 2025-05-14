@@ -1,37 +1,37 @@
 {
   "project_info": {
-    "project_number": "1056908282428",
-    "project_id": "flutter-final-project-25d65",
-    "storage_bucket": "flutter-final-project-25d65.firebasestorage.app"
+    "project_number": "240984632507",
+    "project_id": "flutter-final-project-5c31a",
+    "storage_bucket": "flutter-final-project-5c31a.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1056908282428:android:50292a350f2767203b1139",
+        "mobilesdk_app_id": "1:240984632507:android:3d1e8927c96a9d01b68d9e",
         "android_client_info": {
           "package_name": "com.example.pomodoro"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1056908282428-ngdvk3p5g7lnm473jobcrr0odbhovcap.apps.googleusercontent.com",
+          "client_id": "240984632507-pmj7msms9vaa3mksce12q4kv03frja3n.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCbysuLRyVlG_zYa6wsrEHlpbY7gwtiCts"
+          "current_key": "AIzaSyCEKZWyMBTsUu4epV7YEMBoEdVsvVoQmeM"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "1056908282428-ngdvk3p5g7lnm473jobcrr0odbhovcap.apps.googleusercontent.com",
+              "client_id": "240984632507-pmj7msms9vaa3mksce12q4kv03frja3n.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "1056908282428-chnta2pca2sg2us6mvj16fkv2nvds8ra.apps.googleusercontent.com",
+              "client_id": "240984632507-f8ethoorbscpb3btkmctso8pmlubnvmq.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
                 "bundle_id": "com.example.pomodoro"

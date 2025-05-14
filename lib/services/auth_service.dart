@@ -111,41 +111,41 @@ class AuthService {
   // Google登入方法
   Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
-      // 開始Google登入流程
+      // 觸發認證流程
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-      // 如果用戶取消登入則返回錯誤
+      // 如果用戶取消登入
       if (googleUser == null) {
-        return {'success': false, 'message': '用戶取消登入'};
+        return {'success': false, 'message': '已取消登入'};
       }
 
-      // 獲取驗證資訊
+      // 獲取認證詳情
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+
+      // 創建認證憑證
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // 使用Firebase驗證登入
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
-
-      final User? user = userCredential.user;
+      // 使用 Firebase 進行登入
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
+      final user = userCredential.user;
 
       if (user != null) {
-        // 這裡可以添加後端API整合，將Google用戶資訊傳遞給您的API
         return {
           'success': true,
           'data': {
             'uid': user.uid,
-            'displayName': user.displayName,
             'email': user.email,
-            'photoURL': user.photoURL,
+            'displayName': user.displayName,
           },
         };
       } else {
-        return {'success': false, 'message': 'Google登入失敗'};
+        return {'success': false, 'message': '登入失敗'};
       }
     } catch (e) {
       return {'success': false, 'message': e.toString()};

@@ -117,7 +117,7 @@ class _HomePageState extends State<HomePage> {
           unselectedIconTheme: const IconThemeData(size: 28),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: '首頁'),
-            BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '食物'),
+            BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: '圖鑑'),
             BottomNavigationBarItem(
               icon: Icon(Icons.playlist_add),
               label: '待辦事項',

@@ -1,15 +1,8 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:pomodoro/config/env_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
-  final String baseUrl = EnvConfig.apiBaseUrl;
-  final Map<String, String> headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Token token="${EnvConfig.apiToken}"',
-  };
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // 用戶註冊方法
   Future<Map<String, dynamic>> register(
@@ -17,94 +10,93 @@ class AuthService {
     String email,
     String password,
   ) async {
-    var request = http.Request('POST', Uri.parse('$baseUrl/users'));
+    try {
+      // 使用 Firebase 創建用戶
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    request.body = json.encode({
-      "user": {"login": username, "email": email, "password": password},
-    });
+      // 設置用戶顯示名稱
+      await credential.user?.updateDisplayName(username);
 
-    request.headers.addAll(headers);
-
-    http.StreamedResponse response = await request.send();
-    final responseBody = await response.stream.bytesToString();
-
-    if (response.statusCode == 200) {
-      return {'success': true, 'data': json.decode(responseBody)};
-    } else {
       return {
-        'success': false,
-        'message':
-            json.decode(responseBody)['message'] ?? response.reasonPhrase,
+        'success': true,
+        'data': {
+          'uid': credential.user?.uid,
+          'email': credential.user?.email,
+          'displayName': username,
+        },
       };
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'weak-password') {
+        message = '密碼強度太弱';
+      } else if (e.code == 'email-already-in-use') {
+        message = '此電子郵件已被使用';
+      } else if (e.code == 'invalid-email') {
+        message = '無效的電子郵件格式';
+      } else {
+        message = e.message ?? '註冊時發生錯誤';
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
     }
   }
 
   // 用戶登入方法
-  Future<Map<String, dynamic>> login(String username, String password) async {
-    var request = http.Request('POST', Uri.parse('$baseUrl/session'));
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    request.body = json.encode({
-      "user": {"login": username, "password": password},
-    });
-
-    request.headers.addAll(headers);
-
-    http.StreamedResponse response = await request.send();
-    final responseBody = await response.stream.bytesToString();
-    final responseData = json.decode(responseBody);
-
-    if (response.statusCode == 200) {
-      // 檢查是否包含錯誤信息
-      if (responseData.containsKey('error_code') ||
-          (responseData.containsKey('message') &&
-              !responseData.containsKey('User-Token'))) {
-        return {'success': false, 'message': responseData['message'] ?? '登入失敗'};
-      }
-      // 檢查是否有成功登入的必要信息
-      else if (responseData.containsKey('User-Token')) {
-        return {
-          'success': true,
-          'data': responseData,
-          'userToken': responseData['User-Token'],
-          'username': responseData['login'],
-          'email': responseData['email'],
-        };
-      } else {
-        // 處理未預期的回應格式
-        return {'success': false, 'message': '未預期的回應格式'};
-      }
-    } else {
       return {
-        'success': false,
-        'message': responseData['message'] ?? response.reasonPhrase,
+        'success': true,
+        'data': {
+          'uid': credential.user?.uid,
+          'email': credential.user?.email,
+          'displayName': credential.user?.displayName,
+        },
       };
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'user-not-found') {
+        message = '找不到使用此電子郵件的用戶';
+      } else if (e.code == 'wrong-password') {
+        message = '密碼錯誤';
+      } else if (e.code == 'user-disabled') {
+        message = '此用戶帳號已被停用';
+      } else if (e.code == 'invalid-email') {
+        message = '無效的電子郵件格式';
+      } else {
+        message = e.message ?? '登入時發生錯誤';
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
     }
   }
 
   // 忘記密碼方法
   Future<Map<String, dynamic>> forgotPassword(String email) async {
-    var request = http.Request(
-      'POST',
-      Uri.parse('$baseUrl/users/forgot_password'),
-    );
-
-    request.body = json.encode({
-      "user": {"email": email},
-    });
-
-    request.headers.addAll(headers);
-
-    http.StreamedResponse response = await request.send();
-    final responseBody = await response.stream.bytesToString();
-    final responseData = json.decode(responseBody);
-
-    if (response.statusCode == 200) {
-      return {'success': true, 'message': responseData['message']};
-    } else {
-      return {
-        'success': false,
-        'message': responseData['message'] ?? response.reasonPhrase,
-      };
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return {'success': true, 'message': '密碼重設電子郵件已發送'};
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'user-not-found') {
+        message = '找不到使用此電子郵件的用戶';
+      } else if (e.code == 'invalid-email') {
+        message = '無效的電子郵件格式';
+      } else {
+        message = e.message ?? '發送重設密碼郵件時發生錯誤';
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -130,9 +122,7 @@ class AuthService {
       );
 
       // 使用 Firebase 進行登入
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
+      final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user;
 
       if (user != null) {

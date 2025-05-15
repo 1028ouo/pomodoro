@@ -42,9 +42,9 @@ class _LoginPageState extends State<LoginPage> {
           context,
         ).showSnackBar(const SnackBar(content: Text('登入處理中...')));
 
-        // 實際調用登入服務
+        // 使用 email 而不是 username 登入
         final result = await _authService.login(
-          _usernameController.text,
+          _usernameController.text, // 這裡使用 username 欄位輸入 email
           _passwordController.text,
         );
 
@@ -55,8 +55,6 @@ class _LoginPageState extends State<LoginPage> {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(const SnackBar(content: Text('登入成功！')));
-
-            // 儲存用戶資料（這裡可以使用 SharedPreferences 或其他狀態管理方式）
 
             // 導航到首頁
             Navigator.pushReplacementNamed(context, '/home');
@@ -293,14 +291,21 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 40),
                   TextFormField(
                     controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: '用戶名',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person),
+                    keyboardType:
+                        _isLogin
+                            ? TextInputType.emailAddress
+                            : TextInputType.text,
+                    decoration: InputDecoration(
+                      labelText: _isLogin ? '電子郵件' : '用戶名',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: Icon(_isLogin ? Icons.email : Icons.person),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return '請輸入用戶名';
+                        return _isLogin ? '請輸入電子郵件' : '請輸入用戶名';
+                      }
+                      if (_isLogin && !value.contains('@')) {
+                        return '請輸入有效的電子郵件';
                       }
                       return null;
                     },

@@ -1,5 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'home_content.dart';
+import 'food_page.dart';
+import 'task_page.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,32 +17,10 @@ class _HomePageState extends State<HomePage> {
 
   // 頁面列表
   final List<Widget> _pages = [
-    // 主頁內容
-    const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.timer, size: 100),
-          SizedBox(height: 20),
-          Text(
-            '歡迎使用 Pomodoro!',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 40),
-          ElevatedButton(
-            onPressed: null, // 這裡可以開始一個番茄鐘
-            child: Text('開始專注'),
-          ),
-        ],
-      ),
-    ),
-    // 設定頁面內容
-    const Center(
-      child: Text(
-        '個人檔案',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-    ),
+    const HomeContent(), // 主頁內容
+    const FoodPage(), // 食物頁面
+    const TaskPage(), // 待辦事項頁面
+    const ProfilePage(), // 個人檔案頁面
   ];
 
   // 處理登出
@@ -134,10 +116,15 @@ class _HomePageState extends State<HomePage> {
           selectedIconTheme: const IconThemeData(size: 32), // 選中圖示大一點
           unselectedIconTheme: const IconThemeData(size: 28),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: '首頁'),
+            BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '食物'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.playlist_add),
+              label: '待辦事項',
+            ),
             BottomNavigationBarItem(
               icon: Icon(Icons.account_circle),
-              label: '',
+              label: '個人檔案',
             ),
           ],
         ),

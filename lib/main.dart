@@ -18,13 +18,31 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Pomodoro 登入',
+      title: 'Pomodoro',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
-      routes: {'/home': (context) => const HomePage()},
+      initialRoute: '/',
+      routes: {
+        '/':
+            (context) => StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // 如果用戶已登入，導向首頁；否則，導向登入頁
+                if (snapshot.hasData) {
+                  return const HomePage();
+                }
+                return const LoginPage();
+              },
+            ),
+        '/home': (context) => const HomePage(),
+        '/login': (context) => const LoginPage(),
+      },
     );
   }
 }

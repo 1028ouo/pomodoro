@@ -48,34 +48,41 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   void startTimer() {
-    setState(() {
-      isRunning = true;
-      // remainingSeconds = isBreak ? 5 * 60 : 25 * 60; // 專注25分鐘或休息5分鐘
-      remainingSeconds = isBreak ? 5 : 5;
-    });
+    if (mounted) {
+      setState(() {
+        isRunning = true;
+        remainingSeconds = isBreak ? 5 : 5;
+      });
+    }
 
     // 實際應用中這裡會是25分鐘，為了測試設定較短時間
     // 在實際產品中改回正常時間
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (remainingSeconds > 0) {
-        setState(() {
-          remainingSeconds--;
-        });
+        if (mounted) {
+          setState(() {
+            remainingSeconds--;
+          });
+        }
       } else {
         timer.cancel();
         if (!isBreak) {
           // 專注時間結束，開始休息
-          setState(() {
-            isBreak = true;
-          });
+          if (mounted) {
+            setState(() {
+              isBreak = true;
+            });
+          }
           startTimer(); // 開始休息時間
         } else {
           // 休息時間結束，完成一個循環，獲得獎勵
           earnReward();
-          setState(() {
-            isRunning = false;
-            isBreak = false;
-          });
+          if (mounted) {
+            setState(() {
+              isRunning = false;
+              isBreak = false;
+            });
+          }
         }
       }
     });
@@ -83,9 +90,11 @@ class _HomeContentState extends State<HomeContent> {
 
   void stopTimer() {
     timer?.cancel();
-    setState(() {
-      isRunning = false;
-    });
+    if (mounted) {
+      setState(() {
+        isRunning = false;
+      });
+    }
   }
 
   void earnReward() {
@@ -93,40 +102,42 @@ class _HomeContentState extends State<HomeContent> {
     final reward =
         possibleRewards[DateTime.now().millisecondsSinceEpoch %
             possibleRewards.length];
-    setState(() {
-      earnedRewards.add(reward);
-    });
+    if (mounted) {
+      setState(() {
+        earnedRewards.add(reward);
+      });
 
-    // 顯示獲得獎勵的提示
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Center(child: const Text('You got this！')),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(reward.emoji, style: const TextStyle(fontSize: 50)),
-                const SizedBox(height: 10),
-                Text(
-                  reward.name,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+      // 顯示獲得獎勵的提示
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Center(child: const Text('You got this！')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(reward.emoji, style: const TextStyle(fontSize: 50)),
+                  const SizedBox(height: 10),
+                  Text(
+                    reward.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  const SizedBox(height: 5),
+                  Text(reward.description),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('太棒了！'),
                 ),
-                const SizedBox(height: 5),
-                Text(reward.description),
               ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('太棒了！'),
-              ),
-            ],
-          ),
-    );
+      );
+    }
   }
 
   String formatTime(int seconds) {

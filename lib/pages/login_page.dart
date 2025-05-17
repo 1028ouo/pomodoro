@@ -33,9 +33,11 @@ class _LoginPageState extends State<LoginPage> {
   // 處理登入
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+      }
 
       try {
         ScaffoldMessenger.of(
@@ -75,9 +77,11 @@ class _LoginPageState extends State<LoginPage> {
           ).showSnackBar(SnackBar(content: Text('登入失敗: ${e.toString()}')));
         }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -85,9 +89,11 @@ class _LoginPageState extends State<LoginPage> {
   // 處理註冊
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+      }
 
       try {
         ScaffoldMessenger.of(
@@ -124,9 +130,11 @@ class _LoginPageState extends State<LoginPage> {
           ).showSnackBar(SnackBar(content: Text('發生錯誤: ${e.toString()}')));
         }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -181,9 +189,11 @@ class _LoginPageState extends State<LoginPage> {
 
   // 處理忘記密碼請求
   Future<void> _handleForgotPassword() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       ScaffoldMessenger.of(
@@ -217,17 +227,21 @@ class _LoginPageState extends State<LoginPage> {
         ).showSnackBar(SnackBar(content: Text('發生錯誤: ${e.toString()}')));
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   // 處理Google登入
   Future<void> _handleGoogleSignIn() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       ScaffoldMessenger.of(
@@ -262,9 +276,11 @@ class _LoginPageState extends State<LoginPage> {
         ).showSnackBar(SnackBar(content: Text('發生錯誤: ${e.toString()}')));
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

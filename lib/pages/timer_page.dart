@@ -1,3 +1,4 @@
+import 'package:pomodoro/services/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,6 +13,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final UserService _userService = UserService();
   Map<String, dynamic>? userData;
   bool isLoading = true;
 
@@ -45,6 +47,18 @@ class _ProfilePageState extends State<ProfilePage> {
         isLoading = false;
       });
     }
+  }
+
+  // 計時器完成時調用此方法
+  void _onPomodoroCompleted() async {
+    // 假設每個番茄鐘是25分鐘 (1500秒)
+    final focusTimeSeconds = 1500;
+
+    // 更新統計數據
+    await _userService.updatePomodoroStats(focusTimeSeconds);
+
+    // 顯示完成提示或進行其他操作
+    // ...
   }
 
   @override

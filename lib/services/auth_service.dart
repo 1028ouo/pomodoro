@@ -1,15 +1,19 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore db = FirebaseFirestore.instance; // 初始化 Firestore
 
   // 用戶註冊方法
   Future<Map<String, dynamic>> register(
     String username,
     String email,
-    String password,
-  ) async {
+    String password, {
+    String country = '',
+    DateTime? birthday,
+  }) async {
     try {
       // 使用 Firebase 創建用戶
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -19,6 +23,35 @@ class AuthService {
 
       // 設置用戶顯示名稱
       await credential.user?.updateDisplayName(username);
+
+      // 註冊成功後，新增用戶基本資訊到 Firestore
+      await addUserData(
+        uid: credential.user?.uid ?? '',
+        username: username,
+        birthday: birthday,
+      );
+
+      // 初始化用戶資料
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day).toIso8601String();
+      final weekStart =
+          DateTime(
+            now.year,
+            now.month,
+            now.day - (now.weekday - 1),
+          ).toIso8601String();
+
+      await db.collection('users').doc(credential.user?.uid).set({
+        'username': username,
+        'email': email,
+        'joinedAt': today,
+        'totalFocusTime': 0,
+        'streakDays': 0,
+        'weeklyFocusTime': 0,
+        'completedPomodoros': 0,
+        'lastActiveDate': '',
+        'currentWeekStart': weekStart,
+      });
 
       return {
         'success': true,
@@ -140,5 +173,22 @@ class AuthService {
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
+  }
+
+  /// 新增用戶基本資訊到 Firestore
+  Future<void> addUserData({
+    required String uid,
+    required String username,
+    DateTime? birthday,
+  }) async {
+    final userData = <String, dynamic>{
+      "username": username,
+      "birthday": birthday?.toIso8601String() ?? '',
+      "totalFocusTime": 0, // 累計專注時長（秒）
+      "joinedAt": DateTime.now().toIso8601String(),
+    };
+
+    // 以 uid 作為文件 id 儲存
+    await db.collection("users").doc(uid).set(userData);
   }
 }

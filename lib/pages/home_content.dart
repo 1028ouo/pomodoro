@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../services/food_service.dart';
+import '../services/firebase_service.dart';
 
 // 定義冒險獎勵(料理)資料結構
 class FoodReward {
@@ -28,8 +30,13 @@ class _HomeContentState extends State<HomeContent> {
   int remainingSeconds = 25 * 60; // 25分鐘專注時間
   Timer? timer;
 
+  // 服務
+  final FoodService _foodService = FoodService();
+  final FirebaseService _firebaseService = FirebaseService();
+
   // 獎勵相關
   List<FoodReward> earnedRewards = [];
+  bool isLoadingRecipe = false;
 
   // 假資料：可能獲得的獎勵
   final List<FoodReward> possibleRewards = [
@@ -51,12 +58,13 @@ class _HomeContentState extends State<HomeContent> {
     if (mounted) {
       setState(() {
         isRunning = true;
+        // 測試用短時間
         remainingSeconds = isBreak ? 5 : 5;
+        // 正式環境設定
+        // remainingSeconds = isBreak ? 5 * 60 : 25 * 60;
       });
     }
 
-    // 實際應用中這裡會是25分鐘，為了測試設定較短時間
-    // 在實際產品中改回正常時間
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (remainingSeconds > 0) {
         if (mounted) {
@@ -75,8 +83,8 @@ class _HomeContentState extends State<HomeContent> {
           }
           startTimer(); // 開始休息時間
         } else {
-          // 休息時間結束，完成一個循環，獲得獎勵
-          earnReward();
+          // 休息時間結束，獲得食譜獎勵
+          getRandomRecipeReward();
           if (mounted) {
             setState(() {
               isRunning = false;
@@ -94,6 +102,87 @@ class _HomeContentState extends State<HomeContent> {
       setState(() {
         isRunning = false;
       });
+    }
+  }
+
+  // 獲取並儲存隨機食譜
+  Future<void> getRandomRecipeReward() async {
+    setState(() {
+      isLoadingRecipe = true;
+    });
+
+    try {
+      // 獲取隨機食譜
+      final recipe = await _foodService.getRandomRecipe();
+
+      // 檢查是否已經獲得過這個食譜
+      final hasRecipe = await _firebaseService.hasRecipe(recipe.id);
+
+      // 保存到Firestore
+      await _firebaseService.saveRecipe(recipe.id, recipe.title, recipe.image);
+
+      // 顯示獲得的食譜
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Center(child: Text(hasRecipe ? '再次獲得食譜！' : '獲得新食譜！')),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Image.network(
+                        recipe.image,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (ctx, error, stackTrace) =>
+                                const Icon(Icons.restaurant, size: 100),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      recipe.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (hasRecipe)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          '(你已經擁有這個食譜)',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('太棒了！'),
+                  ),
+                ],
+              ),
+        );
+      }
+    } catch (e) {
+      print('獲取食譜失敗: $e');
+      // 獲取食譜失敗時使用原來的獎勵機制作為備用
+      earnReward();
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoadingRecipe = false;
+        });
+      }
     }
   }
 
@@ -179,6 +268,11 @@ class _HomeContentState extends State<HomeContent> {
               ),
             ],
           ),
+          if (isLoadingRecipe)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 20),
+              child: CircularProgressIndicator(),
+            ),
         ],
       ),
     );

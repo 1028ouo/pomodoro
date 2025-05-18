@@ -36,14 +36,106 @@ class _ProfilePageState extends State<ProfilePage> {
           setState(() {
             userData = doc.data() as Map<String, dynamic>;
           });
+        } else {
+          // 用戶文檔不存在，創建新的用戶資料
+          Map<String, dynamic> newUserData = {
+            'username': currentUser.displayName ?? '使用者',
+            'email': currentUser.email ?? '',
+            'joinedAt': DateTime.now().toIso8601String(),
+            'totalFocusTime': 0,
+            'streakDays': 0,
+            'weeklyFocusTime': 0,
+            'completedPomodoros': 0,
+            'birthday': '',
+            'photoURL': currentUser.photoURL ?? '',
+          };
+
+          // 儲存到 Firestore
+          await _db.collection("users").doc(currentUser.uid).set(newUserData);
+
+          // 更新 UI
+          setState(() {
+            userData = newUserData;
+          });
+
+          // 提示用戶已創建檔案
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('已創建您的個人檔案'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         }
       }
     } catch (e) {
       print("讀取使用者資料時發生錯誤: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('讀取個人資料失敗: $e')));
+      }
     } finally {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  // 處理登出
+  Future<void> _handleLogout(BuildContext context) async {
+    try {
+      // 顯示對話框確認登出
+      bool? shouldLogout = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('確認登出'),
+              content: const Text('您確定要登出嗎？'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('取消'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('登出'),
+                ),
+              ],
+            ),
+      );
+
+      // 用戶取消登出
+      if (shouldLogout != true) {
+        return;
+      }
+
+      // 顯示登出中的提示
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('登出中...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      // 執行登出操作
+      await FirebaseAuth.instance.signOut();
+
+      // 登出成功後，強制導航到登入頁面
+      if (context.mounted) {
+        // 使用 Navigator.pushNamedAndRemoveUntil 清除所有路由並導航到登入頁面
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      }
+    } catch (e) {
+      // 處理錯誤
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('登出時發生錯誤: $e')));
+      }
     }
   }
 
@@ -388,6 +480,30 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
 
             const SizedBox(height: 32),
+
+            // 添加登出按鈕
+            Container(
+              margin: const EdgeInsets.only(bottom: 30),
+              child: ElevatedButton.icon(
+                onPressed: () => _handleLogout(context),
+                icon: const Icon(Icons.logout, color: Colors.white),
+                label: const Text(
+                  '登出',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

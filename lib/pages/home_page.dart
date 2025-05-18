@@ -82,17 +82,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pomodoro'),
-        actions: [
-          // 登出按鈕
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: '登出',
-            onPressed: () => _handleLogout(context),
-          ),
-        ],
-      ),
       body: _pages[_currentIndex],
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(

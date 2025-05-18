@@ -1,24 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Task {
-  String? id;
-  String title;
-  bool isCompleted;
-  DateTime? dueDate;
+  final String? id;
+  final String title;
+  final DateTime? dueDate;
+  final bool isCompleted;
+  final DateTime? createdAt;
+  final String? listId; // 新增: 關聯的任務列表 ID
 
-  Task({this.id, required this.title, this.isCompleted = false, this.dueDate});
+  Task({
+    this.id,
+    required this.title,
+    this.dueDate,
+    this.isCompleted = false,
+    this.createdAt,
+    this.listId, // 新增: 關聯的任務列表 ID
+  });
 
   // 從 Firestore 轉換為 Task 物件
   factory Task.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>;
+
     return Task(
       id: doc.id,
       title: data['title'] ?? '',
+      dueDate: data['dueDate'] != null ? DateTime.parse(data['dueDate']) : null,
       isCompleted: data['isCompleted'] ?? false,
-      dueDate:
-          data['dueDate'] != null
-              ? (data['dueDate'] as Timestamp).toDate()
-              : null,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      listId: data['listId'], // 新增: 關聯的任務列表 ID
     );
   }
 
@@ -26,8 +35,11 @@ class Task {
   Map<String, dynamic> toFirestore() {
     return {
       'title': title,
+      'dueDate': dueDate?.toIso8601String(),
       'isCompleted': isCompleted,
-      'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
+      'createdAt':
+          createdAt ?? FieldValue.serverTimestamp(), // 添加創建時間，如果沒有則使用服務器時間
+      'listId': listId, // 關聯的任務列表 ID
     };
   }
 }

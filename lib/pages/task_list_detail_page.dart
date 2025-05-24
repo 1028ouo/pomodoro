@@ -35,6 +35,26 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
       helpText: '選擇截止日期',
       cancelText: '取消',
       confirmText: '確定',
+      builder: (context, child) {
+        return Transform.scale(
+          scale: 0.85, // 縮小到原來的85%
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.light(
+                primary: Theme.of(context).colorScheme.primary,
+                onPrimary: Colors.white,
+                onSurface: Theme.of(context).colorScheme.secondary,
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+            child: child!,
+          ),
+        );
+      },
     );
 
     if (picked != null) {
@@ -466,7 +486,6 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
         onPressed: _addTask,
         backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 2,
-        tooltip: '新增待辦事項',
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

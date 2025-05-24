@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/food_service.dart';
 import '../services/firebase_service.dart';
+import '../services/user_service.dart'; // 新增 UserService 引用
 
 // 定義冒險獎勵(料理)資料結構
 class FoodReward {
@@ -33,20 +34,25 @@ class _HomeContentState extends State<HomeContent> {
   // 服務
   final FoodService _foodService = FoodService();
   final FirebaseService _firebaseService = FirebaseService();
+  final UserService _userService = UserService();
+
+  // 原始專注時間（秒）
+  final int focusTimeSeconds = 25 * 60; // 專注時間
+  final int breakTimeSeconds = 5 * 60; // 休息時間
 
   // 獎勵相關
   List<FoodReward> earnedRewards = [];
   bool isLoadingRecipe = false;
 
-  // 假資料：可能獲得的獎勵
-  final List<FoodReward> possibleRewards = [
-    FoodReward(name: '營火烤肉', emoji: '🍖', description: '在營火上烤製的美味肉類'),
-    FoodReward(name: '野炊湯品', emoji: '🍲', description: '用山泉水熬煮的鮮美湯品'),
-    FoodReward(name: '烤馬鈴薯', emoji: '🥔', description: '煨在炭火中的香甜馬鈴薯'),
-    FoodReward(name: '野莓果醬', emoji: '🍓', description: '用野外採集的漿果製作的果醬'),
-    FoodReward(name: '露營咖啡', emoji: '☕', description: '在戶外煮的香醇咖啡'),
-    FoodReward(name: '森林三明治', emoji: '🥪', description: '用野菜製作的健康三明治'),
-  ];
+  // // 假資料：可能獲得的獎勵
+  // final List<FoodReward> possibleRewards = [
+  //   FoodReward(name: '營火烤肉', emoji: '🍖', description: '在營火上烤製的美味肉類'),
+  //   FoodReward(name: '野炊湯品', emoji: '🍲', description: '用山泉水熬煮的鮮美湯品'),
+  //   FoodReward(name: '烤馬鈴薯', emoji: '🥔', description: '煨在炭火中的香甜馬鈴薯'),
+  //   FoodReward(name: '野莓果醬', emoji: '🍓', description: '用野外採集的漿果製作的果醬'),
+  //   FoodReward(name: '露營咖啡', emoji: '☕', description: '在戶外煮的香醇咖啡'),
+  //   FoodReward(name: '森林三明治', emoji: '🥪', description: '用野菜製作的健康三明治'),
+  // ];
 
   @override
   void dispose() {
@@ -61,7 +67,7 @@ class _HomeContentState extends State<HomeContent> {
         // 測試用短時間
         remainingSeconds = isBreak ? 5 : 5;
         // 正式環境設定
-        // remainingSeconds = isBreak ? 5 * 60 : 25 * 60;
+        // remainingSeconds = isBreak ? breakTimeSeconds : focusTimeSeconds;
       });
     }
 
@@ -112,6 +118,12 @@ class _HomeContentState extends State<HomeContent> {
     });
 
     try {
+      // 如果完成的是專注時間（而非休息時間），則更新用戶統計資料
+      if (!isBreak) {
+        // 更新使用者的番茄鐘統計資料（使用實際完成的專注時間）
+        await _userService.updatePomodoroStats(focusTimeSeconds);
+      }
+
       // 獲取隨機食譜
       final recipe = await _foodService.getRandomRecipe();
 
@@ -175,8 +187,6 @@ class _HomeContentState extends State<HomeContent> {
       }
     } catch (e) {
       print('獲取食譜失敗: $e');
-      // 獲取食譜失敗時使用原來的獎勵機制作為備用
-      earnReward();
     } finally {
       if (mounted) {
         setState(() {
@@ -186,48 +196,47 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
-  void earnReward() {
-    // 隨機選擇一個獎勵
-    final reward =
-        possibleRewards[DateTime.now().millisecondsSinceEpoch %
-            possibleRewards.length];
-    if (mounted) {
-      setState(() {
-        earnedRewards.add(reward);
-      });
-
-      // 顯示獲得獎勵的提示
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Center(child: const Text('You got this！')),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(reward.emoji, style: const TextStyle(fontSize: 50)),
-                  const SizedBox(height: 10),
-                  Text(
-                    reward.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(reward.description),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('太棒了！'),
-                ),
-              ],
-            ),
-      );
-    }
-  }
+  // void earnReward() {
+  //   // 隨機選擇一個獎勵
+  //   final reward =
+  //       possibleRewards[DateTime.now().millisecondsSinceEpoch %
+  //           possibleRewards.length];
+  //   if (mounted) {
+  //     setState(() {
+  //       earnedRewards.add(reward);
+  //     });
+  //     // 顯示獲得獎勵的提示
+  //     showDialog(
+  //       context: context,
+  //       builder:
+  //           (context) => AlertDialog(
+  //             title: Center(child: const Text('You got this！')),
+  //             content: Column(
+  //               mainAxisSize: MainAxisSize.min,
+  //               children: [
+  //                 Text(reward.emoji, style: const TextStyle(fontSize: 50)),
+  //                 const SizedBox(height: 10),
+  //                 Text(
+  //                   reward.name,
+  //                   style: const TextStyle(
+  //                     fontSize: 20,
+  //                     fontWeight: FontWeight.bold,
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 5),
+  //                 Text(reward.description),
+  //               ],
+  //             ),
+  //             actions: [
+  //               TextButton(
+  //                 onPressed: () => Navigator.pop(context),
+  //                 child: const Text('太棒了！'),
+  //               ),
+  //             ],
+  //           ),
+  //     );
+  //   }
+  // }
 
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;

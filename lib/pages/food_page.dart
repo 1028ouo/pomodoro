@@ -18,11 +18,22 @@ class _FoodPageState extends State<FoodPage> {
   late Future<List<Map<String, dynamic>>> _userRecipes;
   String _searchQuery = '';
   bool _isLoading = false;
+  // 添加 TextEditingController 作為成員變數
+  late TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    // 初始化 TextEditingController
+    _searchController = TextEditingController();
     _loadUserRecipes();
+  }
+
+  @override
+  void dispose() {
+    // 釋放 TextEditingController 資源
+    _searchController.dispose();
+    super.dispose();
   }
 
   // 載入使用者食譜
@@ -88,8 +99,9 @@ class _FoodPageState extends State<FoodPage> {
                             onPressed: () {
                               setState(() {
                                 _searchQuery = '';
+                                // 清空 controller 的文字
+                                _searchController.clear();
                               });
-                              // 清除文字字段內容
                               FocusScope.of(context).unfocus(); // 選擇性地取消焦點
                             },
                           )
@@ -104,8 +116,8 @@ class _FoodPageState extends State<FoodPage> {
                     _searchQuery = value;
                   });
                 },
-                // 提供控制器以便能夠清除文字
-                controller: TextEditingController(text: _searchQuery),
+                // 使用類別成員變數的 controller
+                controller: _searchController,
               ),
             ),
 

@@ -156,6 +156,28 @@ class AuthService {
     }
   }
 
+  // 更新用戶頭像方法
+  Future<Map<String, dynamic>> updateUserPhoto(String photoURL) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        return {'success': false, 'message': '用戶未登入'};
+      }
+
+      // 更新 Firebase Auth 用戶資料
+      await currentUser.updatePhotoURL(photoURL);
+
+      // 更新 Firestore 中的頭像資料
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'photoURL': photoURL,
+      });
+
+      return {'success': true, 'message': '頭像更新成功'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   // 錯誤訊息處理
   String _getErrorMessage(String code) {
     switch (code) {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/food_service.dart';
-import '../services/firebase_service.dart';
+import '../services/recipe_service.dart';
 import '../services/user_service.dart'; // 新增 UserService 引用
 
 // 定義冒險獎勵(料理)資料結構

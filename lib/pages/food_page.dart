@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/food_model.dart';
 import '../services/food_service.dart';
-import '../services/firebase_service.dart';
+import '../services/recipe_service.dart';
 import 'food_detail_page.dart';
 
 class FoodPage extends StatefulWidget {

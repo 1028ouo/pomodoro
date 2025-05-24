@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart'; // 添加日期格式化庫
+import '../services/auth_service.dart'; // 引入 AuthService
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -12,6 +14,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final AuthService _authService = AuthService(); // 添加 AuthService 實例
   Map<String, dynamic>? userData;
   bool isLoading = true;
 
@@ -139,6 +142,74 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // 處理生日編輯
+  Future<void> _editBirthday(BuildContext context) async {
+    // 檢查當前生日是否為空
+    String currentBirthday = userData?['birthday'] ?? '';
+    if (currentBirthday.isNotEmpty) {
+      // 如果已經有生日，顯示提示不能修改
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('生日資料已設定，無法修改'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 顯示日期選擇器
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000, 1, 1), // 設定初始日期
+      firstDate: DateTime(1900), // 最早可選日期
+      lastDate: DateTime.now(), // 最晚可選日期為今天
+      helpText: '選擇您的生日',
+      cancelText: '取消',
+      confirmText: '確認',
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: Colors.blue,
+            colorScheme: const ColorScheme.light(primary: Colors.blue),
+            buttonTheme: const ButtonThemeData(
+              textTheme: ButtonTextTheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      // 格式化日期為 ISO 字符串
+      String formattedDate = pickedDate.toIso8601String();
+
+      // 使用 AuthService 更新生日
+      final result = await _authService.updateBirthday(formattedDate);
+
+      if (context.mounted) {
+        if (result['success']) {
+          // 更新成功，刷新資料
+          await _fetchUserData();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          // 更新失敗
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -237,11 +308,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    email,
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
+                  // const SizedBox(height: 4),
+                  // Text(
+                  //   email,
+                  //   style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  // ),
                 ],
               ),
             ),
@@ -280,9 +351,9 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
 
             // 個人資訊項目列表
-            _buildInfoListTile(Icons.person, '使用者名稱', username),
+            // _buildInfoListTile(Icons.person, '使用者名稱', username),
             _buildInfoListTile(Icons.email, '電子郵件', email),
-            _buildInfoListTile(Icons.cake, '生日', formattedBirthday),
+            _buildBirthdayListTile(Icons.cake, '生日', formattedBirthday),
             _buildInfoListTile(
               Icons.event_available,
               '加入日期',
@@ -297,59 +368,6 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Text(
                 '學習統計',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            // 總專注時間卡片
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.timer, color: Colors.blue, size: 28),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                '總專注時間',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                formattedFocusTime,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    const LinearProgressIndicator(
-                      value: 0.7,
-                      backgroundColor: Colors.grey,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('進度 70%', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
               ),
             ),
 
@@ -552,6 +570,45 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // 修改生日相關的 ListTile，添加編輯功能
+  Widget _buildBirthdayListTile(IconData icon, String title, String value) {
+    bool canEdit = (userData?['birthday'] ?? '').isEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blue),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (canEdit)
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _editBirthday(context),
+              tooltip: '設定生日',
+            ),
         ],
       ),
     );

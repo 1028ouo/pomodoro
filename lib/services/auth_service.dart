@@ -1,113 +1,109 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore db = FirebaseFirestore.instance; // 初始化 Firestore
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // 用戶註冊方法
-  Future<Map<String, dynamic>> register(
-    String username,
-    String email,
-    String password, {
-    String country = '',
-    DateTime? birthday,
-  }) async {
+  // 登入方法
+  Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      // 使用 Firebase 創建用戶
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final UserCredential userCredential = await _auth
+          .signInWithEmailAndPassword(email: email, password: password);
 
-      // 設置用戶顯示名稱
-      await credential.user?.updateDisplayName(username);
-
-      // 註冊成功後，新增用戶基本資訊到 Firestore
-      await addUserData(
-        uid: credential.user?.uid ?? '',
-        username: username,
-        birthday: birthday,
-      );
-
-      // 初始化用戶資料
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day).toIso8601String();
-      final weekStart =
-          DateTime(
-            now.year,
-            now.month,
-            now.day - (now.weekday - 1),
-          ).toIso8601String();
-
-      await db.collection('users').doc(credential.user?.uid).set({
-        'username': username,
-        'email': email,
-        'joinedAt': today,
-        'totalFocusTime': 0,
-        'streakDays': 0,
-        'weeklyFocusTime': 0,
-        'completedPomodoros': 0,
-        'lastActiveDate': '',
-        'currentWeekStart': weekStart,
-      });
-
-      return {
-        'success': true,
-        'data': {
-          'uid': credential.user?.uid,
-          'email': credential.user?.email,
-          'displayName': username,
-        },
-      };
+      return {'success': true, 'user': userCredential.user};
     } on FirebaseAuthException catch (e) {
-      String message;
-      if (e.code == 'weak-password') {
-        message = '密碼強度太弱';
-      } else if (e.code == 'email-already-in-use') {
-        message = '此電子郵件已被使用';
-      } else if (e.code == 'invalid-email') {
-        message = '無效的電子郵件格式';
-      } else {
-        message = e.message ?? '註冊時發生錯誤';
-      }
-      return {'success': false, 'message': message};
+      return {'success': false, 'message': _getErrorMessage(e.code)};
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
   }
 
-  // 用戶登入方法
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  // 註冊方法
+  Future<Map<String, dynamic>> register(
+    String username,
+    String email,
+    String password,
+    String birthday, // 新增生日參數
+  ) async {
     try {
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      // 創建用戶
+      final UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // 設置用戶顯示名稱
+      await userCredential.user!.updateDisplayName(username);
+
+      // 在Firestore中創建用戶資料，包含生日
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'username': username,
+        'email': email,
+        'birthday': birthday, // 儲存生日
+        'joinedAt': DateTime.now().toIso8601String(),
+        'totalFocusTime': 0,
+        'streakDays': 0,
+        'weeklyFocusTime': 0,
+        'completedPomodoros': 0,
+        'photoURL': '',
+      });
+
+      return {'success': true, 'user': userCredential.user};
+    } on FirebaseAuthException catch (e) {
+      return {'success': false, 'message': _getErrorMessage(e.code)};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // Google登入方法
+  Future<Map<String, dynamic>> signInWithGoogle() async {
+    try {
+      // 開始Google登入流程
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return {'success': false, 'message': '已取消Google登入'};
+      }
+
+      // 獲取驗證信息
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
 
-      return {
-        'success': true,
-        'data': {
-          'uid': credential.user?.uid,
-          'email': credential.user?.email,
-          'displayName': credential.user?.displayName,
-        },
-      };
-    } on FirebaseAuthException catch (e) {
-      String message;
-      if (e.code == 'user-not-found') {
-        message = '找不到使用此電子郵件的用戶';
-      } else if (e.code == 'wrong-password') {
-        message = '密碼錯誤';
-      } else if (e.code == 'user-disabled') {
-        message = '此用戶帳號已被停用';
-      } else if (e.code == 'invalid-email') {
-        message = '無效的電子郵件格式';
+      // 使用Google憑證登入Firebase
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // 檢查用戶是否已存在於Firestore
+        final docRef = _firestore.collection('users').doc(user.uid);
+        final docSnapshot = await docRef.get();
+
+        // 如果用戶不存在，創建新的用戶資料
+        if (!docSnapshot.exists) {
+          await docRef.set({
+            'username': user.displayName ?? '使用者',
+            'email': user.email ?? '',
+            'birthday': '', // 為Google用戶設置空生日，需要用戶稍後填寫
+            'joinedAt': DateTime.now().toIso8601String(),
+            'totalFocusTime': 0,
+            'streakDays': 0,
+            'weeklyFocusTime': 0,
+            'completedPomodoros': 0,
+            'photoURL': user.photoURL ?? '',
+          });
+        }
+
+        return {'success': true, 'user': user};
       } else {
-        message = e.message ?? '登入時發生錯誤';
+        return {'success': false, 'message': '無法使用Google登入'};
       }
-      return {'success': false, 'message': message};
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
@@ -117,78 +113,70 @@ class AuthService {
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      return {'success': true, 'message': '密碼重設電子郵件已發送'};
+      return {'success': true, 'message': '密碼重設連結已發送到您的電子郵件'};
     } on FirebaseAuthException catch (e) {
-      String message;
-      if (e.code == 'user-not-found') {
-        message = '找不到使用此電子郵件的用戶';
-      } else if (e.code == 'invalid-email') {
-        message = '無效的電子郵件格式';
-      } else {
-        message = e.message ?? '發送重設密碼郵件時發生錯誤';
-      }
-      return {'success': false, 'message': message};
+      return {'success': false, 'message': _getErrorMessage(e.code)};
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
   }
 
-  // Google登入方法
-  Future<Map<String, dynamic>> signInWithGoogle() async {
+  // 更新生日方法
+  Future<Map<String, dynamic>> updateBirthday(String birthday) async {
     try {
-      // 觸發認證流程
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      // 如果用戶取消登入
-      if (googleUser == null) {
-        return {'success': false, 'message': '已取消登入'};
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        return {'success': false, 'message': '用戶未登入'};
       }
 
-      // 獲取認證詳情
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // 檢查用戶當前生日資料
+      final userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
 
-      // 創建認證憑證
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final currentBirthday = userData['birthday'] as String?;
 
-      // 使用 Firebase 進行登入
-      final userCredential = await _auth.signInWithCredential(credential);
-      final user = userCredential.user;
+        // 如果生日已存在且不為空，則不允許更改
+        if (currentBirthday != null && currentBirthday.isNotEmpty) {
+          return {'success': false, 'message': '生日資料已存在，無法修改'};
+        }
 
-      if (user != null) {
-        return {
-          'success': true,
-          'data': {
-            'uid': user.uid,
-            'email': user.email,
-            'displayName': user.displayName,
-          },
-        };
+        // 更新生日資料
+        await _firestore.collection('users').doc(currentUser.uid).update({
+          'birthday': birthday,
+        });
+
+        return {'success': true, 'message': '生日更新成功'};
       } else {
-        return {'success': false, 'message': '登入失敗'};
+        return {'success': false, 'message': '用戶資料不存在'};
       }
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
   }
 
-  /// 新增用戶基本資訊到 Firestore
-  Future<void> addUserData({
-    required String uid,
-    required String username,
-    DateTime? birthday,
-  }) async {
-    final userData = <String, dynamic>{
-      "username": username,
-      "birthday": birthday?.toIso8601String() ?? '',
-      "totalFocusTime": 0, // 累計專注時長（秒）
-      "joinedAt": DateTime.now().toIso8601String(),
-    };
-
-    // 以 uid 作為文件 id 儲存
-    await db.collection("users").doc(uid).set(userData);
+  // 錯誤訊息處理
+  String _getErrorMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return '找不到此電子郵件的用戶';
+      case 'wrong-password':
+        return '密碼錯誤';
+      case 'invalid-email':
+        return '無效的電子郵件格式';
+      case 'user-disabled':
+        return '此用戶已被停用';
+      case 'email-already-in-use':
+        return '此電子郵件已被使用';
+      case 'operation-not-allowed':
+        return '此操作不被允許';
+      case 'weak-password':
+        return '密碼強度不足';
+      case 'too-many-requests':
+        return '登入嘗試次數過多，請稍後再試';
+      default:
+        return '發生錯誤: $code';
+    }
   }
 }

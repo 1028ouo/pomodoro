@@ -65,96 +65,111 @@ class _TaskPageState extends State<TaskPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
+            return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(20),
               ),
               backgroundColor: Theme.of(context).cardColor,
-              title: Text(
-                '新增任務列表',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _listNameController,
-                    decoration: InputDecoration(
-                      hintText: '輸入列表名稱...',
-                      hintStyle: TextStyle(color: Theme.of(context).hintColor),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
-                        ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '新增任務列表',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    const SizedBox(height: 24),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        controller: _listNameController,
+                        decoration: InputDecoration(
+                          hintText: '輸入列表名稱...',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).hintColor,
+                          ),
+                        ),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          fontSize: 16,
+                        ),
+                        autofocus: true,
+                      ),
                     ),
-                    autofocus: true,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    '選擇圖標',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 24),
+                    Text(
+                      '選擇圖標',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children:
-                        _availableIcons.map((icon) {
+                    const SizedBox(height: 16),
+                    Container(
+                      height: 120,
+                      child: GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 1,
+                            ),
+                        itemCount: _availableIcons.length,
+                        itemBuilder: (context, index) {
+                          final icon = _availableIcons[index];
+                          final isSelected = _selectedIcon == icon['value'];
                           return InkWell(
                             onTap: () {
                               setDialogState(() {
                                 _selectedIcon = icon['value'];
                               });
                             },
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
                                 color:
-                                    _selectedIcon == icon['value']
-                                        ? Theme.of(
-                                          context,
-                                        ).colorScheme.primary.withOpacity(0.2)
+                                    isSelected
+                                        ? Theme.of(context).colorScheme.primary
                                         : Theme.of(
                                           context,
                                         ).scaffoldBackgroundColor,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color:
-                                      _selectedIcon == icon['value']
-                                          ? Theme.of(
-                                            context,
-                                          ).colorScheme.primary
-                                          : Theme.of(context).dividerColor,
-                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow:
+                                    isSelected
+                                        ? [
+                                          BoxShadow(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withOpacity(0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                        : null,
                               ),
                               child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     _getIconData(icon['value']),
                                     color:
-                                        _selectedIcon == icon['value']
-                                            ? Theme.of(
-                                              context,
-                                            ).colorScheme.primary
+                                        isSelected
+                                            ? Colors.white
                                             : Theme.of(context).iconTheme.color,
-                                    size: 28,
+                                    size: 24,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -162,10 +177,8 @@ class _TaskPageState extends State<TaskPage> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       color:
-                                          _selectedIcon == icon['value']
-                                              ? Theme.of(
-                                                context,
-                                              ).colorScheme.primary
+                                          isSelected
+                                              ? Colors.white
                                               : Theme.of(
                                                 context,
                                               ).textTheme.bodySmall?.color,
@@ -175,63 +188,78 @@ class _TaskPageState extends State<TaskPage> {
                               ),
                             ),
                           );
-                        }).toList(),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _listNameController.clear();
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor:
-                        Theme.of(context).textTheme.bodySmall?.color,
-                  ),
-                  child: const Text('取消'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_listNameController.text.isNotEmpty) {
-                      setState(() {
-                        _isLoading = true;
-                      });
-
-                      try {
-                        TaskList newList = TaskList(
-                          name: _listNameController.text,
-                          icon: _selectedIcon,
-                          createdAt: DateTime.now(),
-                        );
-
-                        final docRef = await _taskService.addTaskList(newList);
-                        Navigator.pop(context);
-
-                        // 清空表單
-                        _listNameController.clear();
-                        _selectedIcon = 'list';
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('新增列表失敗: ${e.toString()}')),
-                        );
-                      } finally {
-                        setState(() {
-                          _isLoading = false;
-                        });
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                        },
+                      ),
                     ),
-                  ),
-                  child: const Text('新增'),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _listNameController.clear();
+                          },
+                          child: Text(
+                            '取消',
+                            style: TextStyle(
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (_listNameController.text.isNotEmpty) {
+                              setState(() => _isLoading = true);
+                              try {
+                                TaskList newList = TaskList(
+                                  name: _listNameController.text,
+                                  icon: _selectedIcon,
+                                  createdAt: DateTime.now(),
+                                );
+                                await _taskService.addTaskList(newList);
+                                Navigator.pop(context);
+                                _listNameController.clear();
+                                _selectedIcon = 'list';
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('新增列表失敗: ${e.toString()}'),
+                                  ),
+                                );
+                              } finally {
+                                setState(() => _isLoading = false);
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            '新增',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -382,11 +410,18 @@ class _TaskPageState extends State<TaskPage> {
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white,
+                                  Theme.of(context).cardColor.withOpacity(0.8),
+                                ],
+                              ),
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withOpacity(0.1),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -424,7 +459,7 @@ class _TaskPageState extends State<TaskPage> {
                                       taskCount = taskSnapshot.data!.length;
                                     }
                                     return Text(
-                                      '$taskCount 個任務',
+                                      '$taskCount 個項目',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color:
@@ -448,7 +483,6 @@ class _TaskPageState extends State<TaskPage> {
         onPressed: _addTaskList,
         backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 2,
-        tooltip: '新增任務列表',
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

@@ -3,9 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
-import 'package:image_picker/image_picker.dart'; // 添加圖片選擇器套件
-import 'package:firebase_storage/firebase_storage.dart'; // 添加 Firebase Storage 套件
-import 'dart:io'; // 用於處理檔案
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -20,9 +17,6 @@ class _ProfilePageState extends State<ProfilePage> {
   final AuthService _authService = AuthService(); // 添加 AuthService 實例
   Map<String, dynamic>? userData;
   bool isLoading = true;
-  final ImagePicker _picker = ImagePicker(); // 初始化圖片選擇器
-  final FirebaseStorage _storage = FirebaseStorage.instance; // 初始化 Storage
-  bool isUploadingImage = false; // 控制上傳狀態
 
   @override
   void initState() {
@@ -47,6 +41,10 @@ class _ProfilePageState extends State<ProfilePage> {
           });
         } else {
           // 用戶文檔不存在，創建新的用戶資料
+          // 隨機生成一個頭像 ID (1-10)
+          int randomPicId = 1 + (DateTime.now().millisecondsSinceEpoch % 10);
+          String profilePicId = 'pic_$randomPicId';
+
           Map<String, dynamic> newUserData = {
             'username': currentUser.displayName ?? '使用者',
             'email': currentUser.email ?? '',
@@ -56,7 +54,7 @@ class _ProfilePageState extends State<ProfilePage> {
             'weeklyFocusTime': 0,
             'completedPomodoros': 0,
             'birthday': '',
-            'photoURL': currentUser.photoURL ?? '',
+            'profilePicId': profilePicId, // 儲存頭像 ID 而非 URL
           };
 
           // 儲存到 Firestore
@@ -216,124 +214,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // 選擇並上傳頭像
-  Future<void> _uploadProfileImage() async {
-    try {
-      // 顯示選擇來源的對話框
-      final ImageSource? source = await showModalBottomSheet<ImageSource>(
-        context: context,
-        builder: (BuildContext context) {
-          return SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    '選擇照片來源',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_camera),
-                  title: const Text('相機'),
-                  onTap: () {
-                    Navigator.pop(context, ImageSource.camera);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('相簿'),
-                  onTap: () {
-                    Navigator.pop(context, ImageSource.gallery);
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      );
-
-      // 如果用戶取消選擇，直接返回
-      if (source == null) return;
-
-      // 開始上傳，顯示載入指示器
-      setState(() {
-        isUploadingImage = true;
-      });
-
-      // 選擇圖片
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 75,
-      );
-
-      // 如果沒有選擇圖片，結束上傳
-      if (image == null) {
-        setState(() {
-          isUploadingImage = false;
-        });
-        return;
-      }
-
-      // 獲取當前用戶
-      User? currentUser = _auth.currentUser;
-      if (currentUser == null) {
-        throw Exception('用戶未登入');
-      }
-
-      // 準備上傳路徑
-      final String filePath =
-          'profile_images/${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final File imageFile = File(image.path);
-
-      // 上傳到 Firebase Storage
-      final uploadTask = _storage.ref(filePath).putFile(imageFile);
-      final snapshot = await uploadTask;
-
-      // 獲取下載 URL
-      final String downloadURL = await snapshot.ref.getDownloadURL();
-
-      // 更新用戶資料
-      final result = await _authService.updateUserPhoto(downloadURL);
-
-      if (result['success']) {
-        // 更新成功，刷新資料
-        await _fetchUserData();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('上傳頭像時發生錯誤: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('上傳頭像失敗: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      setState(() {
-        isUploadingImage = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -370,6 +250,9 @@ class _ProfilePageState extends State<ProfilePage> {
     int streakDays = userData!['streakDays'] ?? 0;
     int weeklyFocusTime = userData!['weeklyFocusTime'] ?? 0;
     int completedPomodoros = userData!['completedPomodoros'] ?? 0;
+
+    // 獲取頭像 ID
+    String profilePicId = userData!['profilePicId'] ?? 'pic_1';
 
     // 格式化日期顯示
     String formattedJoinedDate = '未知';
@@ -415,60 +298,20 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.symmetric(vertical: 24.0),
               child: Column(
                 children: [
-                  Stack(
-                    children: [
-                      // 頭像顯示 - 添加 InkWell 使其可點擊
-                      InkWell(
-                        onTap: isUploadingImage ? null : _uploadProfileImage,
-                        borderRadius: BorderRadius.circular(50),
-                        child: Ink(
-                          height: 100,
-                          width: 100,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.blue.shade100,
-                            image:
-                                userData != null &&
-                                        userData!['photoURL'] != null &&
-                                        userData!['photoURL']
-                                            .toString()
-                                            .isNotEmpty
-                                    ? DecorationImage(
-                                      image: NetworkImage(
-                                        userData!['photoURL'],
-                                      ),
-                                      fit: BoxFit.cover,
-                                    )
-                                    : null,
-                          ),
-                          child:
-                              userData == null ||
-                                      userData!['photoURL'] == null ||
-                                      userData!['photoURL'].toString().isEmpty
-                                  ? const Icon(
-                                    Icons.account_circle,
-                                    size: 80,
-                                    color: Colors.white,
-                                  )
-                                  : null,
+                  // 顯示頭像 - 使用本地資源而非可上傳
+                  Container(
+                    height: 100,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.blue.shade100,
+                      image: DecorationImage(
+                        image: AssetImage(
+                          'assets/profile_pic/$profilePicId.png',
                         ),
+                        fit: BoxFit.cover,
                       ),
-                      // 上傳中顯示進度指示器
-                      if (isUploadingImage)
-                        Positioned.fill(
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.black38,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -478,11 +321,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  // const SizedBox(height: 4),
-                  // Text(
-                  //   email,
-                  //   style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  // ),
                 ],
               ),
             ),

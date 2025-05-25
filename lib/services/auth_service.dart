@@ -36,7 +36,10 @@ class AuthService {
       // 設置用戶顯示名稱
       await userCredential.user!.updateDisplayName(username);
 
-      // 在Firestore中創建用戶資料，包含生日
+      // 隨機選擇一個頭像 ID
+      String profilePicId = getRandomProfilePicId();
+
+      // 在Firestore中創建用戶資料，包含生日和頭像 ID
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'username': username,
         'email': email,
@@ -46,7 +49,7 @@ class AuthService {
         'streakDays': 0,
         'weeklyFocusTime': 0,
         'completedPomodoros': 0,
-        'photoURL': '',
+        'profilePicId': profilePicId, // 儲存頭像 ID
       });
 
       return {'success': true, 'user': userCredential.user};
@@ -87,6 +90,9 @@ class AuthService {
 
         // 如果用戶不存在，創建新的用戶資料
         if (!docSnapshot.exists) {
+          // 隨機選擇一個頭像 ID
+          String profilePicId = getRandomProfilePicId();
+
           await docRef.set({
             'username': user.displayName ?? '使用者',
             'email': user.email ?? '',
@@ -96,7 +102,7 @@ class AuthService {
             'streakDays': 0,
             'weeklyFocusTime': 0,
             'completedPomodoros': 0,
-            'photoURL': user.photoURL ?? '',
+            'profilePicId': profilePicId, // 為Google用戶設置隨機頭像 ID
           });
         }
 
@@ -156,26 +162,11 @@ class AuthService {
     }
   }
 
-  // 更新用戶頭像方法
-  Future<Map<String, dynamic>> updateUserPhoto(String photoURL) async {
-    try {
-      User? currentUser = _auth.currentUser;
-      if (currentUser == null) {
-        return {'success': false, 'message': '用戶未登入'};
-      }
-
-      // 更新 Firebase Auth 用戶資料
-      await currentUser.updatePhotoURL(photoURL);
-
-      // 更新 Firestore 中的頭像資料
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'photoURL': photoURL,
-      });
-
-      return {'success': true, 'message': '頭像更新成功'};
-    } catch (e) {
-      return {'success': false, 'message': e.toString()};
-    }
+  // 隨機選擇頭像 ID
+  String getRandomProfilePicId() {
+    // 生成 1-10 的隨機數
+    int randomNum = 1 + (DateTime.now().millisecondsSinceEpoch % 10);
+    return 'pic_$randomNum';
   }
 
   // 錯誤訊息處理

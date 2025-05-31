@@ -76,7 +76,7 @@ class _TaskPageState extends State<TaskPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '新增任務列表',
+                      '新增清單',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontSize: 24,
@@ -108,7 +108,7 @@ class _TaskPageState extends State<TaskPage> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      '選擇圖標',
+                      '選擇類別',
                       style: TextStyle(
                         color: Theme.of(context).textTheme.bodyLarge?.color,
                         fontSize: 18,
@@ -117,14 +117,19 @@ class _TaskPageState extends State<TaskPage> {
                     ),
                     const SizedBox(height: 16),
                     Container(
-                      height: 120,
+                      height: 150, // 增加高度，從 120 改為 150
                       child: GridView.builder(
+                        physics:
+                            NeverScrollableScrollPhysics(), // 防止 GridView 內部滾動
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                        ), // 增加內部邊距
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 4,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 1,
+                              crossAxisSpacing: 16, // 增加水平間距
+                              mainAxisSpacing: 16, // 增加垂直間距
+                              childAspectRatio: 0.9, // 調整長寬比，使圖示更合適
                             ),
                         itemCount: _availableIcons.length,
                         itemBuilder: (context, index) {
@@ -274,211 +279,233 @@ class _TaskPageState extends State<TaskPage> {
 
     if (!isUserLoggedIn) {
       return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.account_circle_outlined,
-                size: 80,
-                color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '請先登入',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.primary,
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('/assets/background_pic/list_home.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.account_circle_outlined,
+                  size: 80,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withOpacity(0.5),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '登入後即可查看並管理你的待辦事項',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).textTheme.bodySmall?.color,
+                const SizedBox(height: 20),
+                Text(
+                  '請先登入',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  // 這裡可以導航到登入頁面
-                  // Navigator.of(context).pushNamed('/login');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
+                const SizedBox(height: 12),
+                Text(
+                  '登入後即可查看並管理你的待辦事項',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                child: const Text('前往登入'),
-              ),
-            ],
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    // 這裡可以導航到登入頁面
+                    // Navigator.of(context).pushNamed('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('前往登入'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('我的任務列表'),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body:
-          _isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              )
-              : StreamBuilder<List<TaskList>>(
-                stream: _taskService.getTaskLists(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                    );
-                  }
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/background_pic/list_home.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child:
+            _isLoading
+                ? Center(
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                )
+                : StreamBuilder<List<TaskList>>(
+                  stream: _taskService.getTaskLists(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                      );
+                    }
 
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.folder_outlined,
-                            size: 80,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.secondary.withOpacity(0.5),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            '尚無任務列表',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.primary,
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.folder_outlined,
+                              size: 80,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.secondary.withOpacity(0.5),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '建立一個列表開始安排你的任務',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color:
-                                  Theme.of(context).textTheme.bodySmall?.color,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  List<TaskList> taskLists = snapshot.data!;
-
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 1,
-                          ),
-                      itemCount: taskLists.length,
-                      itemBuilder: (context, index) {
-                        final taskList = taskLists[index];
-                        return InkWell(
-                          onTap: () {
-                            // 導航到任務列表詳情頁
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        TaskListDetailPage(taskList: taskList),
+                            const SizedBox(height: 20),
+                            Text(
+                              '尚無任務列表',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                            );
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white,
-                                  Theme.of(context).cardColor.withOpacity(0.8),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '建立一個列表開始安排你的任務',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.color,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    List<TaskList> taskLists = snapshot.data!;
+
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 1,
+                            ),
+                        itemCount: taskLists.length,
+                        itemBuilder: (context, index) {
+                          final taskList = taskLists[index];
+                          return InkWell(
+                            onTap: () {
+                              // 導航到任務列表詳情頁
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => TaskListDetailPage(
+                                        taskList: taskList,
+                                      ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                image: const DecorationImage(
+                                  image: AssetImage(
+                                    'assets/widget_pic/list_card.png',
+                                  ),
+                                  fit: BoxFit.cover,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _getIconData(taskList.icon),
-                                  size: 48,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  taskList.name,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.color,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                StreamBuilder<List<Task>>(
-                                  stream: _taskService.getTasksByList(
-                                    taskList.id!,
-                                  ),
-                                  builder: (context, taskSnapshot) {
-                                    int taskCount = 0;
-                                    if (taskSnapshot.hasData) {
-                                      taskCount = taskSnapshot.data!.length;
-                                    }
-                                    return Text(
-                                      '$taskCount 個項目',
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 20.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      _getIconData(taskList.icon),
+                                      size: 48,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      taskList.name,
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                         color:
                                             Theme.of(
                                               context,
-                                            ).textTheme.bodySmall?.color,
+                                            ).textTheme.bodyLarge?.color,
                                       ),
-                                    );
-                                  },
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    StreamBuilder<List<Task>>(
+                                      stream: _taskService.getTasksByList(
+                                        taskList.id!,
+                                      ),
+                                      builder: (context, taskSnapshot) {
+                                        int taskCount = 0;
+                                        if (taskSnapshot.hasData) {
+                                          taskCount = taskSnapshot.data!.length;
+                                        }
+                                        return Text(
+                                          '$taskCount 個項目',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall?.color,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTaskList,
         backgroundColor: Theme.of(context).colorScheme.primary,

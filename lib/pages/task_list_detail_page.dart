@@ -243,7 +243,8 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent, // 將背景色設為透明
+      extendBodyBehindAppBar: true, // 讓內容延伸到AppBar後面
       appBar: AppBar(
         title: Row(
           children: [
@@ -255,6 +256,10 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
         actions: [
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
+            color: const Color.fromARGB(255, 247, 233, 220), // 設定彈出選單為淺咖啡色背景
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             itemBuilder:
                 (context) => [
                   PopupMenuItem(
@@ -287,6 +292,15 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                         content: Text(
                           '確定要刪除"${widget.taskList.name}"列表及其所有任務嗎？此操作無法復原。',
                         ),
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          251,
+                          232,
+                          214,
+                        ), // 設定淺咖啡色背景
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
@@ -313,180 +327,194 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
             },
           ),
         ],
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent, // AppBar背景設為透明
         elevation: 0,
       ),
-      body: StreamBuilder<List<Task>>(
-        stream: _taskService.getTasksByList(widget.taskList.id!),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-            );
-          }
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/background_pic/list_detail.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: StreamBuilder<List<Task>>(
+          stream: _taskService.getTasksByList(widget.taskList.id!),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              );
+            }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.assignment_outlined,
-                    size: 80,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.secondary.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    '尚無待辦事項',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.primary,
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.assignment_outlined,
+                      size: 80,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.secondary.withOpacity(0.5),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '新增一個待辦事項開始規劃你的一天',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
-
-          List<Task> tasks = snapshot.data!;
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ListView.builder(
-              itemCount: tasks.length,
-              itemBuilder: (context, index) {
-                final task = tasks[index];
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Dismissible(
-                    key: Key(task.id ?? ''),
-                    background: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade400,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      child: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.white,
+                    const SizedBox(height: 20),
+                    Text(
+                      '尚無待辦事項',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                    direction: DismissDirection.endToStart,
-                    onDismissed: (_) {
-                      if (task.id != null) {
-                        _taskService.deleteTask(task.id!, widget.taskList.id!);
-                      }
-                    },
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                    const SizedBox(height: 12),
+                    Text(
+                      '新增一個待辦事項開始規劃你的一天',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
-                      title: Text(
-                        task.title,
-                        style: TextStyle(
-                          decoration:
-                              task.isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                          color:
-                              task.isCompleted
-                                  ? Theme.of(context).textTheme.bodySmall?.color
-                                  : Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.color,
-                          fontWeight:
-                              task.isCompleted
-                                  ? FontWeight.normal
-                                  : FontWeight.w500,
-                          fontSize: 16,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            List<Task> tasks = snapshot.data!;
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ListView.builder(
+                itemCount: tasks.length,
+                itemBuilder: (context, index) {
+                  final task = tasks[index];
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Dismissible(
+                      key: Key(task.id ?? ''),
+                      background: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade400,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
                         ),
                       ),
-                      subtitle:
-                          task.dueDate != null
-                              ? Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 14,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.secondary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _formatDate(task.dueDate),
-                                      style: TextStyle(
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (_) {
+                        if (task.id != null) {
+                          _taskService.deleteTask(
+                            task.id!,
+                            widget.taskList.id!,
+                          );
+                        }
+                      },
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        title: Text(
+                          task.title,
+                          style: TextStyle(
+                            decoration:
+                                task.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                            color:
+                                task.isCompleted
+                                    ? Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.color
+                                    : Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.color,
+                            fontWeight:
+                                task.isCompleted
+                                    ? FontWeight.normal
+                                    : FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle:
+                            task.dueDate != null
+                                ? Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 14,
                                         color:
                                             Theme.of(
                                               context,
-                                            ).textTheme.bodySmall?.color,
-                                        fontSize: 14,
+                                            ).colorScheme.secondary,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                              : null,
-                      leading: Transform.scale(
-                        scale: 1.2,
-                        child: Checkbox(
-                          value: task.isCompleted,
-                          onChanged:
-                              (_) => _taskService.toggleTaskCompletion(task),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          activeColor: Theme.of(context).colorScheme.secondary,
-                          checkColor: Colors.white,
-                          side: BorderSide(
-                            color: Theme.of(context).colorScheme.secondary,
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _formatDate(task.dueDate),
+                                        style: TextStyle(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.bodySmall?.color,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                                : null,
+                        leading: Transform.scale(
+                          scale: 1.2,
+                          child: Checkbox(
+                            value: task.isCompleted,
+                            onChanged:
+                                (_) => _taskService.toggleTaskCompletion(task),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            activeColor:
+                                Theme.of(context).colorScheme.secondary,
+                            checkColor: Colors.white,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          );
-        },
+                  );
+                },
+              ),
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTask,
         backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 2,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.edit, color: Colors.white),
       ),
     );
   }

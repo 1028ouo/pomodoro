@@ -119,7 +119,10 @@ class _HomeContentState extends State<HomeContent>
       } else {
         timer.cancel();
         if (!timerManager.isBreak) {
-          // 專注時間結束，開始休息
+          // 專注時間結束，記錄統計資料
+          _updateUserStats();
+
+          // 開始休息
           if (mounted) {
             setState(() {
               timerManager.switchToBreak();
@@ -141,6 +144,17 @@ class _HomeContentState extends State<HomeContent>
         }
       }
     });
+  }
+
+  // 新增：專門用於更新用戶統計資料的方法
+  Future<void> _updateUserStats() async {
+    try {
+      // 更新使用者的番茄鐘統計資料
+      await _userService.updatePomodoroStats(timerManager.focusTimeSeconds);
+      print('成功更新番茄鐘統計資料: ${timerManager.focusTimeSeconds} 秒');
+    } catch (e) {
+      print('更新番茄鐘統計資料失敗: $e');
+    }
   }
 
   void stopTimer() {
@@ -206,12 +220,6 @@ class _HomeContentState extends State<HomeContent>
     });
 
     try {
-      // 如果完成的是專注時間（而非休息時間），則更新用戶統計資料
-      if (!timerManager.isBreak) {
-        // 更新使用者的番茄鐘統計資料
-        await _userService.updatePomodoroStats(timerManager.focusTimeSeconds);
-      }
-
       // 獲取隨機食譜
       final recipe = await _foodService.getRandomRecipe();
 

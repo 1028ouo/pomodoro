@@ -1,443 +1,523 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import '../services/food_service.dart';
+import '../services/recipe_service.dart';
+import '../services/user_service.dart';
+import '../services/timer_manager.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+class HomeContent extends StatefulWidget {
+  const HomeContent({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<HomeContent> createState() => _HomeContentState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  Map<String, dynamic>? userData;
-  bool isLoading = true;
+class _HomeContentState extends State<HomeContent>
+    with TickerProviderStateMixin {
+  final TimerManager timerManager = TimerManager();
+  Timer? _timer;
+
+  // 背景圖片狀態
+  String backgroundImage = 'assets/background_pic/home_morn.png';
+  String _previousBackgroundImage = 'assets/background_pic/home_morn.png';
+
+  // 控制器和動畫
+  late AnimationController _backgroundController;
+  late Animation<double> _backgroundFadeAnimation;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  // 服務
+  final FoodService _foodService = FoodService();
+  final FirebaseService _firebaseService = FirebaseService();
+  final UserService _userService = UserService();
+
+  bool isLoadingRecipe = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+
+    // 初始化按鈕動畫控制器
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    // 縮放動畫
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // 透明度動畫
+    _opacityAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+
+    // 初始化背景轉場動畫控制器
+    _backgroundController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    // 背景淡入淡出動畫
+    _backgroundFadeAnimation = CurvedAnimation(
+      parent: _backgroundController,
+      curve: Curves.fastLinearToSlowEaseIn,
+    );
   }
 
-  Future<void> _fetchUserData() async {
+  @override
+  void dispose() {
+    // 確保在元件銷毀時取消計時器和動畫控制器
+    _timer?.cancel();
+    _animationController.dispose();
+    _backgroundController.dispose();
+    super.dispose();
+  }
+
+  void startTimer() {
+    if (mounted) {
+      setState(() {
+        timerManager.start();
+
+        // 設定初始專注背景
+        if (!timerManager.isBreak) {
+          _changeBackground('assets/background_pic/focus_1.png');
+        }
+      });
+    }
+
+    // 啟動按鈕動畫效果
+    _animationController.forward().then((_) => _animationController.reverse());
+
+    // 取消已存在的計時器
+    _timer?.cancel();
+
+    // 創建新的計時器並保存引用
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!timerManager.isCompleted()) {
+        if (mounted) {
+          setState(() {
+            timerManager.decrementTime();
+
+            // 根據剩餘時間更新背景圖片（僅在專注模式下）
+            if (!timerManager.isBreak) {
+              updateBackgroundBasedOnTime();
+            }
+          });
+        }
+      } else {
+        timer.cancel();
+        if (!timerManager.isBreak) {
+          // 專注時間結束，記錄統計資料
+          _updateUserStats();
+
+          // 開始休息
+          if (mounted) {
+            setState(() {
+              timerManager.switchToBreak();
+              // 設定休息時的背景圖片
+              _changeBackground('assets/background_pic/home_night.png');
+            });
+          }
+          startTimer(); // 開始休息時間
+        } else {
+          // 休息時間結束，獲得食譜獎勵
+          getRandomRecipeReward();
+          if (mounted) {
+            setState(() {
+              timerManager.reset();
+              _changeBackground('assets/background_pic/home_morn.png');
+            });
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> _updateUserStats() async {
+    try {
+      await _userService.updatePomodoroStats(timerManager.focusTimeSeconds);
+    } catch (e) {
+      print('更新番茄鐘統計資料失敗: $e');
+    }
+  }
+
+  void stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _animationController.forward().then((_) => _animationController.reverse());
+
+    if (mounted) {
+      setState(() {
+        timerManager.stop();
+        _changeBackground('assets/background_pic/home_morn.png');
+      });
+    }
+  }
+
+  // 更新背景圖片
+  void updateBackgroundBasedOnTime() {
+    int totalTime = timerManager.getCurrentTotalTime();
+    int elapsedTime = timerManager.getElapsedTime();
+    String newBackground;
+
+    if (elapsedTime < totalTime * 2 / 5) {
+      newBackground = 'assets/background_pic/focus_1.png';
+    } else if (elapsedTime < totalTime * 3 / 5) {
+      newBackground = 'assets/background_pic/focus_2.png';
+    } else {
+      newBackground = 'assets/background_pic/focus_3.png';
+    }
+
+    // 檢查背景是否需要更新
+    if (backgroundImage != newBackground) {
+      _changeBackground(newBackground);
+    }
+  }
+
+  // 背景切換動畫
+  void _changeBackground(String newBackground) {
+    if (backgroundImage == newBackground) return;
+
+    // 保存當前背景作為前一個背景
+    _previousBackgroundImage = backgroundImage;
+
+    // 更新新背景
+    backgroundImage = newBackground;
+
+    // 重置並開始背景轉場動畫
+    _backgroundController.reset();
+    _backgroundController.forward();
+  }
+
+  // 獲取並儲存隨機食譜
+  Future<void> getRandomRecipeReward() async {
     setState(() {
-      isLoading = true;
+      isLoadingRecipe = true;
     });
 
     try {
-      User? currentUser = _auth.currentUser;
-      if (currentUser != null) {
-        DocumentSnapshot doc =
-            await _db.collection("users").doc(currentUser.uid).get();
+      // 獲取隨機食譜
+      final recipe = await _foodService.getRandomRecipe();
 
-        if (doc.exists) {
-          setState(() {
-            userData = doc.data() as Map<String, dynamic>;
-          });
-        }
+      // 檢查是否已經獲得過這個食譜
+      final hasRecipe = await _firebaseService.hasRecipe(recipe.id);
+
+      // 保存到Firestore
+      await _firebaseService.saveRecipe(recipe.id, recipe.title, recipe.image);
+
+      // 顯示獲得的食譜
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Center(child: Text(hasRecipe ? '再次獲得食譜！' : '獲得新食譜！')),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Image.network(
+                        recipe.image,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (ctx, error, stackTrace) =>
+                                const Icon(Icons.restaurant, size: 100),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      recipe.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (hasRecipe)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          '(你已經擁有這個食譜)',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('太棒了！'),
+                  ),
+                ],
+              ),
+        );
       }
     } catch (e) {
-      print("讀取使用者資料時發生錯誤: $e");
+      print('獲取食譜失敗: $e');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoadingRecipe = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (userData == null || _auth.currentUser == null) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.account_circle, size: 100),
-            SizedBox(height: 20),
-            Text(
-              '尚未登入',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text(
-              '請先登入以查看您的個人資料',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 獲取並格式化使用者資料
-    String username = userData!['username'] ?? '未知用戶';
-    String email = _auth.currentUser?.email ?? '未設定郵箱';
-    String joinedAt = userData!['joinedAt'] ?? '';
-    String birthday = userData!['birthday'] ?? '';
-    int totalFocusTime = userData!['totalFocusTime'] ?? 0;
-    int streakDays = userData!['streakDays'] ?? 0;
-    int weeklyFocusTime = userData!['weeklyFocusTime'] ?? 0;
-    int completedPomodoros = userData!['completedPomodoros'] ?? 0;
-
-    // 格式化日期顯示
-    String formattedJoinedDate = '未知';
-    String formattedBirthday = '未設定';
-
-    if (joinedAt.isNotEmpty) {
-      try {
-        DateTime joinDate = DateTime.parse(joinedAt);
-        formattedJoinedDate =
-            '${joinDate.year}年${joinDate.month}月${joinDate.day}日';
-      } catch (e) {
-        // 處理日期解析錯誤
-      }
-    }
-
-    if (birthday.isNotEmpty) {
-      try {
-        DateTime birthDate = DateTime.parse(birthday);
-        formattedBirthday =
-            '${birthDate.year}年${birthDate.month}月${birthDate.day}日';
-      } catch (e) {
-        // 處理日期解析錯誤
-      }
-    }
-
-    // 將秒數轉換為小時:分鐘格式
-    int hours = totalFocusTime ~/ 3600;
-    int minutes = (totalFocusTime % 3600) ~/ 60;
-    String formattedFocusTime = '$hours 小時 $minutes 分鐘';
-
-    // 將本週學習時間轉換為小時:分鐘格式
-    int weeklyHours = weeklyFocusTime ~/ 3600;
-    int weeklyMinutes = (weeklyFocusTime % 3600) ~/ 60;
-    String formattedWeeklyTime = '$weeklyHours 小時 $weeklyMinutes 分鐘';
-
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            // 頭像和用戶名區域
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Column(
-                children: [
-                  const CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.blue,
-                    child: Icon(
-                      Icons.account_circle,
-                      size: 80,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    username,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    email,
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-
-            // 統計數據區塊
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStatColumn('專注時間', formattedFocusTime, Icons.timer),
-                  const VerticalDivider(thickness: 1, color: Colors.grey),
-                  _buildStatColumn(
-                    '加入日期',
-                    formattedJoinedDate,
-                    Icons.calendar_today,
-                  ),
-                ],
-              ),
-            ),
-
-            const Divider(),
-
-            // 個人資訊區域 - 標題
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(
-                '個人資訊',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            // 個人資訊項目列表
-            _buildInfoListTile(Icons.person, '使用者名稱', username),
-            _buildInfoListTile(Icons.email, '電子郵件', email),
-            _buildInfoListTile(Icons.cake, '生日', formattedBirthday),
-            _buildInfoListTile(
-              Icons.event_available,
-              '加入日期',
-              formattedJoinedDate,
-            ),
-
-            const Divider(),
-
-            // 統計區域 - 標題
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(
-                '學習統計',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            // 總專注時間卡片
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.timer, color: Colors.blue, size: 28),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                '總專注時間',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                formattedFocusTime,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    const LinearProgressIndicator(
-                      value: 0.7,
-                      backgroundColor: Colors.grey,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('進度 70%', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 新增 - 其他學習統計卡片
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    // 連續學習天數
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.local_fire_department,
-                          color: Colors.orange,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                '連續學習天數',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                '$streakDays 天',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 16),
-
-                    // 本週學習時間
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_view_week,
-                          color: Colors.green,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                '本週學習時間',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                formattedWeeklyTime,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 16),
-
-                    // 完成的番茄鐘數量
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: Colors.purple,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                '完成的番茄鐘',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                '$completedPomodoros 個',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.purple,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 構建統計數據列
-  Widget _buildStatColumn(String title, String value, IconData icon) {
-    return Column(
+    return Stack(
       children: [
-        Icon(icon, color: Colors.blue, size: 24),
-        const SizedBox(height: 8),
-        Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-
-  // 構建信息列表項
-  Widget _buildInfoListTile(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.blue),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // 背景轉場效果
+        AnimatedBuilder(
+          animation: _backgroundController,
+          builder: (context, child) {
+            return Stack(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                // 舊背景（淡出）
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 1.0 - _backgroundFadeAnimation.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(_previousBackgroundImage),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+
+                // 新背景（淡入）
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: _backgroundFadeAnimation.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(backgroundImage),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
-            ),
+            );
+          },
+        ),
+
+        Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 100),
+
+              // 番茄鐘卡片
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    transform:
+                        Matrix4.identity()
+                          ..scale(timerManager.isRunning ? 1.02 : 1.0),
+                    child: AspectRatio(
+                      aspectRatio: 5 / 3,
+                      child: Stack(
+                        children: [
+                          // 背景圖片
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Hero(
+                              tag: 'timer_card',
+                              child: Image.asset(
+                                'assets/widget_pic/focus_time.png',
+                                fit: BoxFit.fill,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            ),
+                          ),
+
+                          // 內容
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 15.0,
+                              horizontal: 15.0,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // 控制按鈕
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 35.0),
+                                  child: Material(
+                                    elevation: 4,
+                                    shape: const CircleBorder(),
+                                    color: Colors.transparent,
+                                    child: AnimatedBuilder(
+                                      animation: _animationController,
+                                      builder: (context, child) {
+                                        return Transform.scale(
+                                          scale: _scaleAnimation.value,
+                                          child: AnimatedOpacity(
+                                            opacity: _opacityAnimation.value,
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                if (timerManager.isRunning) {
+                                                  stopTimer();
+                                                } else {
+                                                  startTimer();
+                                                }
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
+                                                shape: const CircleBorder(),
+                                                backgroundColor:
+                                                    timerManager.isRunning
+                                                        ? Colors.brown
+                                                            .withOpacity(0.9)
+                                                        : Colors.red.shade900
+                                                            .withOpacity(0.9),
+                                              ),
+                                              child: Icon(
+                                                timerManager.isRunning
+                                                    ? Icons.pause
+                                                    : Icons.play_arrow,
+                                                color: Colors.white,
+                                                size: 42,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+
+                                // 時間顯示
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    right: 24.0,
+                                    top: 15,
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
+                                        child: AnimatedSwitcher(
+                                          duration: const Duration(
+                                            milliseconds: 300,
+                                          ),
+                                          transitionBuilder: (
+                                            Widget child,
+                                            Animation<double> animation,
+                                          ) {
+                                            return FadeTransition(
+                                              opacity: animation,
+                                              child: SlideTransition(
+                                                position: Tween<Offset>(
+                                                  begin: const Offset(0.0, 0.5),
+                                                  end: Offset.zero,
+                                                ).animate(animation),
+                                                child: child,
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            timerManager.isBreak
+                                                ? '休息時間'
+                                                : '專注時間',
+                                            key: ValueKey<bool>(
+                                              timerManager.isBreak,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                        child: TweenAnimationBuilder<double>(
+                                          tween: Tween<double>(
+                                            begin: 0.0,
+                                            end: 1.0,
+                                          ),
+                                          duration: const Duration(
+                                            milliseconds: 300,
+                                          ),
+                                          builder: (context, value, child) {
+                                            return Opacity(
+                                              opacity: value,
+                                              child: Text(
+                                                timerManager.formatTime(),
+                                                style: const TextStyle(
+                                                  fontSize: 40,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Loading indicator
+              Expanded(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child:
+                      isLoadingRecipe
+                          ? const Padding(
+                            padding: EdgeInsets.only(bottom: 20),
+                            child: CircularProgressIndicator(),
+                          )
+                          : const SizedBox(),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

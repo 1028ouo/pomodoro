@@ -40,7 +40,7 @@
 
 1. 複製此專案到本地
    ```bash
-   git clone [專案 Git URL]
+   git clone https://github.com/1028ouo/pomodoro.git
    cd pomodoro
    ```
 

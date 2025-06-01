@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,13 +20,42 @@ class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  // 新增生日相關變數
+  DateTime? _selectedBirthday;
+  final _birthdayController = TextEditingController();
+
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     _emailController.dispose();
     _forgotPasswordEmailController.dispose();
+    _birthdayController.dispose();
     super.dispose();
+  }
+
+  // 選擇生日的方法
+  Future<void> _selectBirthday(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthday ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: '選擇您的生日',
+      cancelText: '取消',
+      confirmText: '確定',
+      fieldLabelText: '生日日期',
+      fieldHintText: '年/月/日',
+      errorFormatText: '請輸入有效的日期',
+      errorInvalidText: '請輸入有效的日期範圍',
+    );
+
+    if (picked != null && picked != _selectedBirthday) {
+      setState(() {
+        _selectedBirthday = picked;
+        _birthdayController.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
   }
 
   // 處理登入
@@ -104,6 +132,7 @@ class _LoginPageState extends State<LoginPage> {
           _usernameController.text,
           _emailController.text,
           _passwordController.text,
+          _birthdayController.text, // 傳遞生日資料
         );
 
         if (result['success']) {
@@ -344,6 +373,26 @@ class _LoginPageState extends State<LoginPage> {
                         }
                         if (!value.contains('@')) {
                           return '請輸入有效的電子郵件';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // 新增生日輸入欄位
+                    TextFormField(
+                      controller: _birthdayController,
+                      readOnly: true,
+                      onTap: () => _selectBirthday(context),
+                      decoration: const InputDecoration(
+                        labelText: '生日',
+                        hintText: '點擊選擇生日',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.cake),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '請選擇您的生日';
                         }
                         return null;
                       },

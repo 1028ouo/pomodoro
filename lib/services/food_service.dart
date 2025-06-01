@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/env_config.dart';
 import '../models/food_model.dart';
-import './firebase_service.dart';
+import 'recipe_service.dart';
 
 class FoodService {
   final FirebaseService _firebaseService = FirebaseService();

@@ -1,20 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/food_service.dart';
-import '../services/firebase_service.dart';
-
-// 定義冒險獎勵(料理)資料結構
-class FoodReward {
-  final String name;
-  final String emoji;
-  final String description;
-
-  FoodReward({
-    required this.name,
-    required this.emoji,
-    required this.description,
-  });
-}
+import '../services/recipe_service.dart';
+import '../services/user_service.dart';
+import '../services/timer_manager.dart'; // 新增 TimerManager 的 import
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -23,62 +12,122 @@ class HomeContent extends StatefulWidget {
   State<HomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends State<HomeContent> {
-  // 番茄鐘狀態
-  bool isRunning = false;
-  bool isBreak = false;
-  int remainingSeconds = 25 * 60; // 25分鐘專注時間
-  Timer? timer;
+class _HomeContentState extends State<HomeContent>
+    with TickerProviderStateMixin {
+  // 使用TimerManager來集中管理時間
+  final TimerManager timerManager = TimerManager();
+
+  // 保存 Timer 實例
+  Timer? _timer;
+
+  // 背景圖片狀態
+  String backgroundImage = 'assets/background_pic/home_morn.png';
+  String _previousBackgroundImage = 'assets/background_pic/home_morn.png';
+
+  // 背景轉場動畫控制器
+  late AnimationController _backgroundController;
+  late Animation<double> _backgroundFadeAnimation;
 
   // 服務
   final FoodService _foodService = FoodService();
   final FirebaseService _firebaseService = FirebaseService();
+  final UserService _userService = UserService();
 
   // 獎勵相關
-  List<FoodReward> earnedRewards = [];
   bool isLoadingRecipe = false;
 
-  // 假資料：可能獲得的獎勵
-  final List<FoodReward> possibleRewards = [
-    FoodReward(name: '營火烤肉', emoji: '🍖', description: '在營火上烤製的美味肉類'),
-    FoodReward(name: '野炊湯品', emoji: '🍲', description: '用山泉水熬煮的鮮美湯品'),
-    FoodReward(name: '烤馬鈴薯', emoji: '🥔', description: '煨在炭火中的香甜馬鈴薯'),
-    FoodReward(name: '野莓果醬', emoji: '🍓', description: '用野外採集的漿果製作的果醬'),
-    FoodReward(name: '露營咖啡', emoji: '☕', description: '在戶外煮的香醇咖啡'),
-    FoodReward(name: '森林三明治', emoji: '🥪', description: '用野菜製作的健康三明治'),
-  ];
+  // 動畫控制器
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 初始化按鈕動畫控制器
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    // 縮放動畫
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // 透明度動畫
+    _opacityAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+
+    // 初始化背景轉場動畫控制器
+    _backgroundController = AnimationController(
+      vsync: this,
+      // 增加動畫時間使轉場更加平滑
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    // 背景淡入淡出動畫
+    _backgroundFadeAnimation = CurvedAnimation(
+      parent: _backgroundController,
+      // 使用更平滑的曲線
+      curve: Curves.fastLinearToSlowEaseIn,
+    );
+  }
 
   @override
   void dispose() {
-    timer?.cancel();
+    // 確保在元件銷毀時取消計時器和動畫控制器
+    _timer?.cancel();
+    _animationController.dispose();
+    _backgroundController.dispose();
     super.dispose();
   }
 
   void startTimer() {
     if (mounted) {
       setState(() {
-        isRunning = true;
-        // 測試用短時間
-        remainingSeconds = isBreak ? 5 : 5;
-        // 正式環境設定
-        // remainingSeconds = isBreak ? 5 * 60 : 25 * 60;
+        timerManager.start();
+
+        // 設定初始專注背景
+        if (!timerManager.isBreak) {
+          _changeBackground('assets/background_pic/focus_1.png');
+        }
       });
     }
 
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (remainingSeconds > 0) {
+    // 啟動按鈕動畫效果
+    _animationController.forward().then((_) => _animationController.reverse());
+
+    // 取消已存在的計時器
+    _timer?.cancel();
+
+    // 創建新的計時器並保存引用
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!timerManager.isCompleted()) {
         if (mounted) {
           setState(() {
-            remainingSeconds--;
+            timerManager.decrementTime();
+
+            // 根據剩餘時間更新背景圖片（僅在專注模式下）
+            if (!timerManager.isBreak) {
+              updateBackgroundBasedOnTime();
+            }
           });
         }
       } else {
         timer.cancel();
-        if (!isBreak) {
-          // 專注時間結束，開始休息
+        if (!timerManager.isBreak) {
+          // 專注時間結束，記錄統計資料
+          _updateUserStats();
+
+          // 開始休息
           if (mounted) {
             setState(() {
-              isBreak = true;
+              timerManager.switchToBreak();
+              // 設定休息時的背景圖片
+              _changeBackground('assets/background_pic/home_night.png');
             });
           }
           startTimer(); // 開始休息時間
@@ -87,8 +136,9 @@ class _HomeContentState extends State<HomeContent> {
           getRandomRecipeReward();
           if (mounted) {
             setState(() {
-              isRunning = false;
-              isBreak = false;
+              timerManager.reset();
+              // 休息時間結束後，將背景恢復為初始背景
+              _changeBackground('assets/background_pic/home_morn.png');
             });
           }
         }
@@ -96,13 +146,71 @@ class _HomeContentState extends State<HomeContent> {
     });
   }
 
+  // 新增：專門用於更新用戶統計資料的方法
+  Future<void> _updateUserStats() async {
+    try {
+      // 更新使用者的番茄鐘統計資料
+      await _userService.updatePomodoroStats(timerManager.focusTimeSeconds);
+      print('成功更新番茄鐘統計資料: ${timerManager.focusTimeSeconds} 秒');
+    } catch (e) {
+      print('更新番茄鐘統計資料失敗: $e');
+    }
+  }
+
   void stopTimer() {
-    timer?.cancel();
+    // 取消計時器
+    _timer?.cancel();
+    _timer = null;
+
+    // 啟動按鈕動畫效果
+    _animationController.forward().then((_) => _animationController.reverse());
+
     if (mounted) {
       setState(() {
-        isRunning = false;
+        timerManager.stop();
+        // 恢復默認背景
+        _changeBackground('assets/background_pic/home_morn.png');
       });
     }
+  }
+
+  // 更新背景圖片的方法
+  void updateBackgroundBasedOnTime() {
+    int totalTime = timerManager.getCurrentTotalTime();
+    int elapsedTime = timerManager.getElapsedTime();
+    String newBackground;
+
+    // 根據實際番茄鐘時間區分階段
+    if (elapsedTime < totalTime * 2 / 5) {
+      // 0-10分鐘
+      newBackground = 'assets/background_pic/focus_1.png';
+    } else if (elapsedTime < totalTime * 3 / 5) {
+      // 10-15分鐘
+      newBackground = 'assets/background_pic/focus_2.png';
+    } else {
+      // 15-25分鐘
+      newBackground = 'assets/background_pic/focus_3.png';
+    }
+
+    // 檢查背景是否需要更新
+    if (backgroundImage != newBackground) {
+      _changeBackground(newBackground);
+    }
+  }
+
+  // 背景切換動畫
+  void _changeBackground(String newBackground) {
+    if (backgroundImage == newBackground) return;
+
+    // 保存當前背景作為前一個背景
+    _previousBackgroundImage = backgroundImage;
+
+    // 更新新背景
+    backgroundImage = newBackground;
+
+    // 重置並開始背景轉場動畫
+    _backgroundController.reset();
+    _backgroundController.forward();
   }
 
   // 獲取並儲存隨機食譜
@@ -175,8 +283,6 @@ class _HomeContentState extends State<HomeContent> {
       }
     } catch (e) {
       print('獲取食譜失敗: $e');
-      // 獲取食譜失敗時使用原來的獎勵機制作為備用
-      earnReward();
     } finally {
       if (mounted) {
         setState(() {
@@ -186,95 +292,254 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
-  void earnReward() {
-    // 隨機選擇一個獎勵
-    final reward =
-        possibleRewards[DateTime.now().millisecondsSinceEpoch %
-            possibleRewards.length];
-    if (mounted) {
-      setState(() {
-        earnedRewards.add(reward);
-      });
-
-      // 顯示獲得獎勵的提示
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Center(child: const Text('You got this！')),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(reward.emoji, style: const TextStyle(fontSize: 50)),
-                  const SizedBox(height: 10),
-                  Text(
-                    reward.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(reward.description),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('太棒了！'),
-                ),
-              ],
-            ),
-      );
-    }
-  }
-
-  String formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int remainingSeconds = seconds % 60;
-    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.timer, size: 80),
-          const SizedBox(height: 20),
-          Text(
-            isBreak ? '休息時間' : '專注時間',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            formatTime(remainingSeconds),
-            style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return Stack(
+      children: [
+        // 使用 AnimatedBuilder 實現平滑的背景轉場效果
+        AnimatedBuilder(
+          animation: _backgroundController,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                // 舊背景（淡出）
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 1.0 - _backgroundFadeAnimation.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(_previousBackgroundImage),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 新背景（淡入）
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: _backgroundFadeAnimation.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(backgroundImage),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+
+        Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
             children: [
-              ElevatedButton(
-                onPressed: isRunning ? null : startTimer,
-                child: const Text('開始專注'),
+              // 增加頂部空間，將卡片向下移
+              const SizedBox(height: 100),
+
+              // 使用 Center 和 ConstrainedBox 來控制卡片寬度
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        MediaQuery.of(context).size.width * 0.75, // 調整寬度比例
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    transform:
+                        Matrix4.identity()
+                          ..scale(timerManager.isRunning ? 1.02 : 1.0),
+                    child: AspectRatio(
+                      aspectRatio: 5 / 3, // 設定固定的寬高比，以確保圖片不被扭曲
+                      child: Stack(
+                        children: [
+                          // 背景圖片層
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Hero(
+                              tag: 'timer_card',
+                              child: Image.asset(
+                                'assets/widget_pic/focus_time.png',
+                                fit: BoxFit.fill,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            ),
+                          ),
+
+                          // 內容層
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 15.0,
+                              horizontal: 15.0,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // 左側放置按鈕
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 35.0),
+                                  child: Material(
+                                    elevation: 4,
+                                    shape: const CircleBorder(),
+                                    color: Colors.transparent,
+                                    child: AnimatedBuilder(
+                                      animation: _animationController,
+                                      builder: (context, child) {
+                                        return Transform.scale(
+                                          scale: _scaleAnimation.value,
+                                          child: AnimatedOpacity(
+                                            opacity: _opacityAnimation.value,
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                if (timerManager.isRunning) {
+                                                  stopTimer();
+                                                } else {
+                                                  startTimer();
+                                                }
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
+                                                shape: const CircleBorder(),
+                                                backgroundColor:
+                                                    timerManager.isRunning
+                                                        ? Colors.brown
+                                                            .withOpacity(0.9)
+                                                        : Colors.red.shade900
+                                                            .withOpacity(0.9),
+                                              ),
+                                              child: Icon(
+                                                timerManager.isRunning
+                                                    ? Icons.pause
+                                                    : Icons.play_arrow,
+                                                color: Colors.white,
+                                                size: 42,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+
+                                // 右側放置文字內容
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    right: 24.0,
+                                    top: 15,
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
+                                        child: AnimatedSwitcher(
+                                          duration: const Duration(
+                                            milliseconds: 300,
+                                          ),
+                                          transitionBuilder: (
+                                            Widget child,
+                                            Animation<double> animation,
+                                          ) {
+                                            return FadeTransition(
+                                              opacity: animation,
+                                              child: SlideTransition(
+                                                position: Tween<Offset>(
+                                                  begin: const Offset(0.0, 0.5),
+                                                  end: Offset.zero,
+                                                ).animate(animation),
+                                                child: child,
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            timerManager.isBreak
+                                                ? '休息時間'
+                                                : '專注時間',
+                                            key: ValueKey<bool>(
+                                              timerManager.isBreak,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                        child: TweenAnimationBuilder<double>(
+                                          tween: Tween<double>(
+                                            begin: 0.0,
+                                            end: 1.0,
+                                          ),
+                                          duration: const Duration(
+                                            milliseconds: 300,
+                                          ),
+                                          builder: (context, value, child) {
+                                            return Opacity(
+                                              opacity: value,
+                                              child: Text(
+                                                timerManager.formatTime(),
+                                                style: const TextStyle(
+                                                  fontSize: 40,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(width: 20),
-              ElevatedButton(
-                onPressed: isRunning ? stopTimer : null,
-                child: const Text('停止'),
+
+              // 下方的 loading indicator
+              Expanded(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child:
+                      isLoadingRecipe
+                          ? const Padding(
+                            padding: EdgeInsets.only(bottom: 20),
+                            child: CircularProgressIndicator(),
+                          )
+                          : const SizedBox(),
+                ),
               ),
             ],
           ),
-          if (isLoadingRecipe)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 20),
-              child: CircularProgressIndicator(),
-            ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

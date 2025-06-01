@@ -46,8 +46,9 @@ app.*.map.json
 
 # 敏感資訊配置檔案
 lib/config/
-lib/config/env_config.dart
-lib/config/GoogleService-Info.plist
 ios/Runner/Info.plist
 ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+android/app/google-services.json
+assets/
 

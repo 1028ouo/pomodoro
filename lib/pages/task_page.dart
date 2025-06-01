@@ -65,96 +65,116 @@ class _TaskPageState extends State<TaskPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
+            return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(20),
               ),
               backgroundColor: Theme.of(context).cardColor,
-              title: Text(
-                '新增任務列表',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _listNameController,
-                    decoration: InputDecoration(
-                      hintText: '輸入列表名稱...',
-                      hintStyle: TextStyle(color: Theme.of(context).hintColor),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
-                        ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '新增清單',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    const SizedBox(height: 24),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        controller: _listNameController,
+                        decoration: InputDecoration(
+                          hintText: '輸入列表名稱...',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).hintColor,
+                          ),
+                        ),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          fontSize: 16,
+                        ),
+                        autofocus: true,
+                      ),
                     ),
-                    autofocus: true,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    '選擇圖標',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 24),
+                    Text(
+                      '選擇類別',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children:
-                        _availableIcons.map((icon) {
+                    const SizedBox(height: 16),
+                    Container(
+                      height: 150, // 增加高度，從 120 改為 150
+                      child: GridView.builder(
+                        physics:
+                            NeverScrollableScrollPhysics(), // 防止 GridView 內部滾動
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                        ), // 增加內部邊距
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              crossAxisSpacing: 16, // 增加水平間距
+                              mainAxisSpacing: 16, // 增加垂直間距
+                              childAspectRatio: 0.9, // 調整長寬比，使圖示更合適
+                            ),
+                        itemCount: _availableIcons.length,
+                        itemBuilder: (context, index) {
+                          final icon = _availableIcons[index];
+                          final isSelected = _selectedIcon == icon['value'];
                           return InkWell(
                             onTap: () {
                               setDialogState(() {
                                 _selectedIcon = icon['value'];
                               });
                             },
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
                                 color:
-                                    _selectedIcon == icon['value']
-                                        ? Theme.of(
-                                          context,
-                                        ).colorScheme.primary.withOpacity(0.2)
+                                    isSelected
+                                        ? Theme.of(context).colorScheme.primary
                                         : Theme.of(
                                           context,
                                         ).scaffoldBackgroundColor,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color:
-                                      _selectedIcon == icon['value']
-                                          ? Theme.of(
-                                            context,
-                                          ).colorScheme.primary
-                                          : Theme.of(context).dividerColor,
-                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow:
+                                    isSelected
+                                        ? [
+                                          BoxShadow(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withOpacity(0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                        : null,
                               ),
                               child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     _getIconData(icon['value']),
                                     color:
-                                        _selectedIcon == icon['value']
-                                            ? Theme.of(
-                                              context,
-                                            ).colorScheme.primary
+                                        isSelected
+                                            ? Colors.white
                                             : Theme.of(context).iconTheme.color,
-                                    size: 28,
+                                    size: 24,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -162,10 +182,8 @@ class _TaskPageState extends State<TaskPage> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       color:
-                                          _selectedIcon == icon['value']
-                                              ? Theme.of(
-                                                context,
-                                              ).colorScheme.primary
+                                          isSelected
+                                              ? Colors.white
                                               : Theme.of(
                                                 context,
                                               ).textTheme.bodySmall?.color,
@@ -175,63 +193,78 @@ class _TaskPageState extends State<TaskPage> {
                               ),
                             ),
                           );
-                        }).toList(),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _listNameController.clear();
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor:
-                        Theme.of(context).textTheme.bodySmall?.color,
-                  ),
-                  child: const Text('取消'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_listNameController.text.isNotEmpty) {
-                      setState(() {
-                        _isLoading = true;
-                      });
-
-                      try {
-                        TaskList newList = TaskList(
-                          name: _listNameController.text,
-                          icon: _selectedIcon,
-                          createdAt: DateTime.now(),
-                        );
-
-                        final docRef = await _taskService.addTaskList(newList);
-                        Navigator.pop(context);
-
-                        // 清空表單
-                        _listNameController.clear();
-                        _selectedIcon = 'list';
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('新增列表失敗: ${e.toString()}')),
-                        );
-                      } finally {
-                        setState(() {
-                          _isLoading = false;
-                        });
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                        },
+                      ),
                     ),
-                  ),
-                  child: const Text('新增'),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _listNameController.clear();
+                          },
+                          child: Text(
+                            '取消',
+                            style: TextStyle(
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (_listNameController.text.isNotEmpty) {
+                              setState(() => _isLoading = true);
+                              try {
+                                TaskList newList = TaskList(
+                                  name: _listNameController.text,
+                                  icon: _selectedIcon,
+                                  createdAt: DateTime.now(),
+                                );
+                                await _taskService.addTaskList(newList);
+                                Navigator.pop(context);
+                                _listNameController.clear();
+                                _selectedIcon = 'list';
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('新增列表失敗: ${e.toString()}'),
+                                  ),
+                                );
+                              } finally {
+                                setState(() => _isLoading = false);
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            '新增',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -246,210 +279,279 @@ class _TaskPageState extends State<TaskPage> {
 
     if (!isUserLoggedIn) {
       return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.account_circle_outlined,
-                size: 80,
-                color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '請先登入',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.primary,
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('/assets/background_pic/list_home.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.account_circle_outlined,
+                  size: 80,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withOpacity(0.5),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '登入後即可查看並管理你的待辦事項',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).textTheme.bodySmall?.color,
+                const SizedBox(height: 20),
+                Text(
+                  '請先登入',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  // 這裡可以導航到登入頁面
-                  // Navigator.of(context).pushNamed('/login');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
+                const SizedBox(height: 12),
+                Text(
+                  '登入後即可查看並管理你的待辦事項',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                child: const Text('前往登入'),
-              ),
-            ],
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    // 這裡可以導航到登入頁面
+                    // Navigator.of(context).pushNamed('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('前往登入'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('我的任務列表'),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-      ),
-      body:
-          _isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              )
-              : StreamBuilder<List<TaskList>>(
-                stream: _taskService.getTaskLists(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                    );
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.folder_outlined,
-                            size: 80,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.secondary.withOpacity(0.5),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            '尚無任務列表',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '建立一個列表開始安排你的任務',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color:
-                                  Theme.of(context).textTheme.bodySmall?.color,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  List<TaskList> taskLists = snapshot.data!;
-
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 1,
-                          ),
-                      itemCount: taskLists.length,
-                      itemBuilder: (context, index) {
-                        final taskList = taskLists[index];
-                        return InkWell(
-                          onTap: () {
-                            // 導航到任務列表詳情頁
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        TaskListDetailPage(taskList: taskList),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/background_pic/list_home.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
+          children: [
+            _isLoading
+                ? Center(
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                )
+                : CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      title: const Text('我的清單'),
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      floating: true, // 上滑時隱藏
+                      snap: true, // 下滑時完全顯示
+                      pinned: false, // 不固定在頂部
+                    ),
+                    StreamBuilder<List<TaskList>>(
+                      stream: _taskService.getTaskLists(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return SliverFillRemaining(
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.secondary,
                               ),
-                            );
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _getIconData(taskList.icon),
-                                  size: 48,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  taskList.name,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.color,
+                          );
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return SliverFillRemaining(
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.folder_outlined,
+                                    size: 80,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.secondary.withOpacity(0.5),
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                StreamBuilder<List<Task>>(
-                                  stream: _taskService.getTasksByList(
-                                    taskList.id!,
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    '尚無任務列表',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w500,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
                                   ),
-                                  builder: (context, taskSnapshot) {
-                                    int taskCount = 0;
-                                    if (taskSnapshot.hasData) {
-                                      taskCount = taskSnapshot.data!.length;
-                                    }
-                                    return Text(
-                                      '$taskCount 個任務',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).textTheme.bodySmall?.color,
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    '建立一個列表開始安排你的任務',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall?.color,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        List<TaskList> taskLists = snapshot.data!;
+
+                        return SliverPadding(
+                          padding: const EdgeInsets.all(16),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: 1,
+                                ),
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final taskList = taskLists[index];
+                              return InkWell(
+                                onTap: () {
+                                  // 導航到任務列表詳情頁
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => TaskListDetailPage(
+                                            taskList: taskList,
+                                          ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    image: const DecorationImage(
+                                      image: AssetImage(
+                                        'assets/widget_pic/list_card.png',
                                       ),
-                                    );
-                                  },
+                                      fit: BoxFit.cover,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 20.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        Icon(
+                                          _getIconData(taskList.icon),
+                                          size: 48,
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          taskList.name,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge?.color,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        StreamBuilder<List<Task>>(
+                                          stream: _taskService.getTasksByList(
+                                            taskList.id!,
+                                          ),
+                                          builder: (context, taskSnapshot) {
+                                            int taskCount = 0;
+                                            if (taskSnapshot.hasData) {
+                                              taskCount =
+                                                  taskSnapshot.data!.length;
+                                            }
+                                            return Text(
+                                              '$taskCount 個項目',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color:
+                                                    Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.color,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ],
-                            ),
+                              );
+                            }, childCount: taskLists.length),
                           ),
                         );
                       },
                     ),
-                  );
-                },
+                  ],
+                ),
+            Positioned(
+              right: 20,
+              bottom: 120, // 調整這個值使按鈕不被底部導航欄遮擋
+              child: Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  shape: BoxShape.circle,
+                ),
+                child: FloatingActionButton(
+                  onPressed: _addTaskList,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  elevation: 2,
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
               ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addTaskList,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        elevation: 2,
-        tooltip: '新增任務列表',
-        child: const Icon(Icons.add, color: Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }

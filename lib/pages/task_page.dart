@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pomodoro/models/task.dart'; // 添加這個 import
+import 'package:pomodoro/models/task.dart';
 import 'package:pomodoro/models/task_list.dart';
 import 'package:pomodoro/services/task_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,7 +15,7 @@ class TaskPage extends StatefulWidget {
 class _TaskPageState extends State<TaskPage> {
   final TextEditingController _listNameController = TextEditingController();
   final TaskService _taskService = TaskService();
-  String _selectedIcon = 'list'; // 預設圖標
+  String _selectedIcon = 'list';
   bool _isLoading = false;
 
   @override
@@ -116,20 +116,17 @@ class _TaskPageState extends State<TaskPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      height: 150, // 增加高度，從 120 改為 150
+                    SizedBox(
+                      height: 150,
                       child: GridView.builder(
-                        physics:
-                            NeverScrollableScrollPhysics(), // 防止 GridView 內部滾動
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                        ), // 增加內部邊距
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 4,
-                              crossAxisSpacing: 16, // 增加水平間距
-                              mainAxisSpacing: 16, // 增加垂直間距
-                              childAspectRatio: 0.9, // 調整長寬比，使圖示更合適
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.9,
                             ),
                         itemCount: _availableIcons.length,
                         itemBuilder: (context, index) {
@@ -252,7 +249,7 @@ class _TaskPageState extends State<TaskPage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: Text(
+                          child: const Text(
                             '新增',
                             style: TextStyle(
                               fontSize: 16,
@@ -282,7 +279,7 @@ class _TaskPageState extends State<TaskPage> {
         body: Container(
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('/assets/background_pic/list_home.png'),
+              image: AssetImage('assets/background_pic/list_home.png'),
               fit: BoxFit.cover,
             ),
           ),
@@ -318,8 +315,7 @@ class _TaskPageState extends State<TaskPage> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    // 這裡可以導航到登入頁面
-                    // Navigator.of(context).pushNamed('/login');
+                    // 回到登入頁面
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
@@ -357,9 +353,9 @@ class _TaskPageState extends State<TaskPage> {
                       title: const Text('我的清單'),
                       backgroundColor: Colors.transparent,
                       elevation: 0,
-                      floating: true, // 上滑時隱藏
-                      snap: true, // 下滑時完全顯示
-                      pinned: false, // 不固定在頂部
+                      floating: true,
+                      snap: true,
+                      pinned: false,
                     ),
                     StreamBuilder<List<TaskList>>(
                       stream: _taskService.getTaskLists(),
@@ -435,7 +431,6 @@ class _TaskPageState extends State<TaskPage> {
                               final taskList = taskLists[index];
                               return InkWell(
                                 onTap: () {
-                                  // 導航到任務列表詳情頁
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -528,7 +523,7 @@ class _TaskPageState extends State<TaskPage> {
                 ),
             Positioned(
               right: 20,
-              bottom: 120, // 調整這個值使按鈕不被底部導航欄遮擋
+              bottom: 120,
               child: Container(
                 decoration: BoxDecoration(
                   boxShadow: [

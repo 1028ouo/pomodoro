@@ -7,8 +7,7 @@ import 'package:pomodoro/services/task_service.dart';
 class TaskListDetailPage extends StatefulWidget {
   final TaskList taskList;
 
-  const TaskListDetailPage({Key? key, required this.taskList})
-    : super(key: key);
+  const TaskListDetailPage({Key? key, required this.taskList}) : super(key: key);
 
   @override
   State<TaskListDetailPage> createState() => _TaskListDetailPageState();
@@ -25,7 +24,7 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
     super.dispose();
   }
 
-  // 選擇日期的功能
+  // 選擇日期
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -37,7 +36,7 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
       confirmText: '確定',
       builder: (context, child) {
         return Transform.scale(
-          scale: 0.85, // 縮小到原來的85%
+          scale: 0.85,
           child: Theme(
             data: Theme.of(context).copyWith(
               colorScheme: ColorScheme.light(
@@ -64,6 +63,7 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
     }
   }
 
+  // 新增任務
   void _addTask() {
     showDialog(
       context: context,
@@ -121,9 +121,7 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                       ),
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.secondary.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -133,27 +131,20 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                           Text(
                             '截止日期',
                             style: TextStyle(
-                              color:
-                                  Theme.of(context).textTheme.bodyLarge?.color,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                             ),
                           ),
                           Text(
                             _selectedDate == null
                                 ? '選擇日期'
-                                : DateFormat(
-                                  'yyyy-MM-dd',
-                                ).format(_selectedDate!),
+                                : DateFormat('yyyy-MM-dd').format(_selectedDate!),
                             style: TextStyle(
-                              color:
-                                  _selectedDate == null
-                                      ? Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall?.color
-                                      : Theme.of(context).colorScheme.secondary,
-                              fontWeight:
-                                  _selectedDate == null
-                                      ? FontWeight.normal
-                                      : FontWeight.w500,
+                              color: _selectedDate == null
+                                  ? Theme.of(context).textTheme.bodySmall?.color
+                                  : Theme.of(context).colorScheme.secondary,
+                              fontWeight: _selectedDate == null
+                                  ? FontWeight.normal
+                                  : FontWeight.w500,
                             ),
                           ),
                         ],
@@ -172,8 +163,7 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                     });
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor:
-                        Theme.of(context).textTheme.bodySmall?.color,
+                    foregroundColor: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                   child: const Text('取消'),
                 ),
@@ -183,8 +173,8 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                       Task newTask = Task(
                         title: _taskController.text,
                         dueDate: _selectedDate,
-                        listId: widget.taskList.id, // 加入列表ID
-                        createdAt: DateTime.now(), // 確保設置創建時間
+                        listId: widget.taskList.id,
+                        createdAt: DateTime.now(),
                       );
                       await _taskService.addTask(newTask);
                       Navigator.pop(context);
@@ -211,13 +201,13 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
     );
   }
 
-  // 格式化日期顯示
+  // 格式化日期
   String _formatDate(DateTime? date) {
     if (date == null) return '';
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
-  // 根據圖標名稱取得 Icon 物件
+  // 獲取對應圖標
   IconData _getIconData(String iconName) {
     switch (iconName) {
       case 'work':
@@ -243,8 +233,8 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, // 將背景色設為透明
-      extendBodyBehindAppBar: true, // 讓內容延伸到AppBar後面
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Row(
           children: [
@@ -256,78 +246,68 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
         actions: [
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
-            color: const Color.fromARGB(255, 247, 233, 220), // 設定彈出選單為淺咖啡色背景
+            color: const Color.fromARGB(255, 247, 233, 220),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            itemBuilder:
-                (context) => [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.delete_outline,
-                          color: Theme.of(context).colorScheme.error,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '刪除列表',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ],
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      color: Theme.of(context).colorScheme.error,
+                      size: 20,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      '刪除列表',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             onSelected: (value) {
               if (value == 'delete') {
                 showDialog(
                   context: context,
-                  builder:
-                      (context) => AlertDialog(
-                        title: const Text('刪除列表'),
-                        content: Text(
-                          '確定要刪除"${widget.taskList.name}"列表及其所有任務嗎？此操作無法復原。',
-                        ),
-                        backgroundColor: const Color.fromARGB(
-                          255,
-                          251,
-                          232,
-                          214,
-                        ), // 設定淺咖啡色背景
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('取消'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              await _taskService.deleteTaskList(
-                                widget.taskList.id!,
-                              );
-                              Navigator.pop(context); // 關閉對話框
-                              Navigator.pop(context); // 返回列表頁
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.error,
-                            ),
-                            child: const Text('刪除'),
-                          ),
-                        ],
+                  builder: (context) => AlertDialog(
+                    title: const Text('刪除列表'),
+                    content: Text(
+                      '確定要刪除"${widget.taskList.name}"列表及其所有任務嗎？此操作無法復原。',
+                    ),
+                    backgroundColor: const Color.fromARGB(255, 251, 232, 214),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('取消'),
                       ),
+                      TextButton(
+                        onPressed: () async {
+                          await _taskService.deleteTaskList(widget.taskList.id!);
+                          Navigator.pop(context);
+                          Navigator.pop(context);
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.error,
+                        ),
+                        child: const Text('刪除'),
+                      ),
+                    ],
+                  ),
                 );
               }
             },
           ),
         ],
-        backgroundColor: Colors.transparent, // AppBar背景設為透明
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Container(
@@ -356,9 +336,7 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                     Icon(
                       Icons.assignment_outlined,
                       size: 80,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.secondary.withOpacity(0.5),
+                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -422,10 +400,7 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                       direction: DismissDirection.endToStart,
                       onDismissed: (_) {
                         if (task.id != null) {
-                          _taskService.deleteTask(
-                            task.id!,
-                            widget.taskList.id!,
-                          );
+                          _taskService.deleteTask(task.id!, widget.taskList.id!);
                         }
                       },
                       child: ListTile(
@@ -436,65 +411,45 @@ class _TaskListDetailPageState extends State<TaskListDetailPage> {
                         title: Text(
                           task.title,
                           style: TextStyle(
-                            decoration:
-                                task.isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                            color:
-                                task.isCompleted
-                                    ? Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall?.color
-                                    : Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                            fontWeight:
-                                task.isCompleted
-                                    ? FontWeight.normal
-                                    : FontWeight.w500,
+                            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                            color: task.isCompleted
+                                ? Theme.of(context).textTheme.bodySmall?.color
+                                : Theme.of(context).textTheme.bodyLarge?.color,
+                            fontWeight: task.isCompleted ? FontWeight.normal : FontWeight.w500,
                             fontSize: 16,
                           ),
                         ),
-                        subtitle:
-                            task.dueDate != null
-                                ? Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today_outlined,
-                                        size: 14,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.secondary,
+                        subtitle: task.dueDate != null
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 14,
+                                      color: Theme.of(context).colorScheme.secondary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _formatDate(task.dueDate),
+                                      style: TextStyle(
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
+                                        fontSize: 14,
                                       ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _formatDate(task.dueDate),
-                                        style: TextStyle(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).textTheme.bodySmall?.color,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                                : null,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : null,
                         leading: Transform.scale(
                           scale: 1.2,
                           child: Checkbox(
                             value: task.isCompleted,
-                            onChanged:
-                                (_) => _taskService.toggleTaskCompletion(task),
+                            onChanged: (_) => _taskService.toggleTaskCompletion(task),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            activeColor:
-                                Theme.of(context).colorScheme.secondary,
+                            activeColor: Theme.of(context).colorScheme.secondary,
                             checkColor: Colors.white,
                             side: BorderSide(
                               color: Theme.of(context).colorScheme.secondary,

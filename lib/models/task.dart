@@ -6,7 +6,7 @@ class Task {
   final DateTime? dueDate;
   final bool isCompleted;
   final DateTime? createdAt;
-  final String? listId; // 新增: 關聯的任務列表 ID
+  final String? listId;
 
   Task({
     this.id,
@@ -14,7 +14,7 @@ class Task {
     this.dueDate,
     this.isCompleted = false,
     this.createdAt,
-    this.listId, // 新增: 關聯的任務列表 ID
+    this.listId,
   });
 
   // 從 Firestore 轉換為 Task 物件
@@ -27,7 +27,7 @@ class Task {
       dueDate: data['dueDate'] != null ? DateTime.parse(data['dueDate']) : null,
       isCompleted: data['isCompleted'] ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
-      listId: data['listId'], // 新增: 關聯的任務列表 ID
+      listId: data['listId'],
     );
   }
 
@@ -37,9 +37,8 @@ class Task {
       'title': title,
       'dueDate': dueDate?.toIso8601String(),
       'isCompleted': isCompleted,
-      'createdAt':
-          createdAt ?? FieldValue.serverTimestamp(), // 添加創建時間，如果沒有則使用服務器時間
-      'listId': listId, // 關聯的任務列表 ID
+      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'listId': listId,
     };
   }
 }

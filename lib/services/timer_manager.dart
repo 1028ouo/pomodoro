@@ -9,12 +9,12 @@ class TimerManager {
   bool isBreak = false;
   int remainingSeconds = 0;
 
-  // 構造函數
+  // 建構函數
   TimerManager({
     // 正式
     // this.focusTimeSeconds = 25 * 60,
     // this.breakTimeSeconds = 5 * 60,
-    // 測試
+    // 測試用
     this.focusTimeSeconds = 6,
     this.breakTimeSeconds = 6,
   }) {

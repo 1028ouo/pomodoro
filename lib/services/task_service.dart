@@ -10,20 +10,14 @@ class TaskService {
   // 獲取當前用戶ID
   String? get _userId => _auth.currentUser?.uid;
 
-  // 用戶任務列表集合路徑
   String _userListsCollection(String userId) => 'users/$userId/lists';
-
-  // 用戶任務集合路徑 - 修改為列表子集合
   String _userTasksCollection(String userId, String listId) =>
       'users/$userId/lists/$listId/tasks';
 
   // 獲取任務列表流
   Stream<List<TaskList>> getTaskLists() {
     final userId = _userId;
-    if (userId == null) {
-      // 用戶未登入，返回空列表
-      return Stream.value([]);
-    }
+    if (userId == null) return Stream.value([]);
 
     return _firestore
         .collection(_userListsCollection(userId))
@@ -38,30 +32,25 @@ class TaskService {
   // 新增任務列表
   Future<DocumentReference> addTaskList(TaskList taskList) async {
     final userId = _userId;
-    if (userId == null) {
-      throw Exception('用戶未登入');
-    }
+    if (userId == null) throw Exception('用戶未登入');
 
     return await _firestore
         .collection(_userListsCollection(userId))
         .add(taskList.toFirestore());
   }
 
-  // 刪除任務列表
+  // 刪除任務列表及其所有任務
   Future<void> deleteTaskList(String listId) async {
     final userId = _userId;
     if (userId == null) return;
 
-    // 開始一個批次處理
     WriteBatch batch = _firestore.batch();
 
-    // 刪除任務列表
     DocumentReference listRef = _firestore
         .collection(_userListsCollection(userId))
         .doc(listId);
     batch.delete(listRef);
 
-    // 獲取並刪除該列表下的所有任務
     QuerySnapshot tasksSnapshot =
         await _firestore.collection(_userTasksCollection(userId, listId)).get();
 
@@ -69,17 +58,13 @@ class TaskService {
       batch.delete(doc.reference);
     }
 
-    // 提交批次
     await batch.commit();
   }
 
   // 獲取特定列表下的任務流
   Stream<List<Task>> getTasksByList(String listId) {
     final userId = _userId;
-    if (userId == null) {
-      // 用戶未登入，返回空列表
-      return Stream.value([]);
-    }
+    if (userId == null) return Stream.value([]);
 
     return _firestore
         .collection(_userTasksCollection(userId, listId))
@@ -91,22 +76,17 @@ class TaskService {
         );
   }
 
-  // 獲取所有任務流 (需調整實現方式)
+  // 獲取所有任務
   Stream<List<Task>> getTasks() {
     final userId = _userId;
-    if (userId == null) {
-      // 用戶未登入，返回空列表
-      return Stream.value([]);
-    }
+    if (userId == null) return Stream.value([]);
 
-    // 先獲取所有列表
     return _firestore
         .collection(_userListsCollection(userId))
         .snapshots()
         .asyncMap((listSnapshots) async {
           List<Task> allTasks = [];
 
-          // 對每個列表獲取其任務
           for (var listDoc in listSnapshots.docs) {
             String listId = listDoc.id;
 
@@ -124,7 +104,6 @@ class TaskService {
             allTasks.addAll(listTasks);
           }
 
-          // 按創建時間排序
           allTasks.sort(
             (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
               a.createdAt ?? DateTime.now(),
@@ -140,7 +119,6 @@ class TaskService {
     final userId = _userId;
     if (userId == null || task.listId == null) return;
 
-    // 添加創建時間戳記
     final taskData = task.toFirestore();
     taskData['createdAt'] = FieldValue.serverTimestamp();
 

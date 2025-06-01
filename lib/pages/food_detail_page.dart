@@ -462,7 +462,7 @@ class _FoodDetailPageState extends State<FoodDetailPage> {
                                                   children: [
                                                     // 步驟標題
                                                     Text(
-                                                      'Step ${stepIndex + 1}',
+                                                      'Step ${step.number}',
                                                       style: TextStyle(
                                                         fontSize: 20,
                                                         fontWeight:

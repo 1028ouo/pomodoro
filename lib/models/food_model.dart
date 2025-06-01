@@ -6,7 +6,6 @@ class Food {
   final int readyInMinutes;
   final int servings;
   final String sourceUrl;
-  // 新增詳細資訊欄位
   final String summary;
   final List<Ingredient> ingredients;
   final String instructions;
@@ -49,7 +48,6 @@ class Food {
       readyInMinutes: json['readyInMinutes'] ?? 0,
       servings: json['servings'] ?? 1,
       sourceUrl: json['sourceUrl'] ?? '',
-      // 解析詳細資訊
       summary: json['summary'] ?? '',
       ingredients:
           json['extendedIngredients'] != null
@@ -77,7 +75,6 @@ class Food {
   }
 }
 
-// 新增 Ingredient 模型
 class Ingredient {
   final int id;
   final String name;
@@ -131,7 +128,6 @@ class FoodSearchResponse {
   }
 }
 
-// 新增 Instruction 相關模型
 class Instruction {
   final String name;
   final List<InstructionStep> steps;

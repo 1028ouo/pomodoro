@@ -16,11 +16,8 @@ class _FoodPageState extends State<FoodPage> {
   late Future<List<Map<String, dynamic>>> _userRecipes;
   String _searchQuery = '';
   bool _isLoading = false;
-  // 添加 TextEditingController 作為成員變數
   late TextEditingController _searchController;
-  // 添加 ScrollController 用於監聽滾動
   late ScrollController _scrollController;
-  // 控制搜尋欄顯示狀態
   bool _showSearchBar = true;
   // 紀錄上次滾動位置
   double _lastScrollOffset = 0;
@@ -28,20 +25,15 @@ class _FoodPageState extends State<FoodPage> {
   @override
   void initState() {
     super.initState();
-    // 初始化 TextEditingController
     _searchController = TextEditingController();
-    // 初始化 ScrollController
     _scrollController = ScrollController();
-    // 添加滾動監聽器
     _scrollController.addListener(_scrollListener);
     _loadUserRecipes();
   }
 
   @override
   void dispose() {
-    // 釋放 TextEditingController 資源
     _searchController.dispose();
-    // 移除滾動監聽器並釋放 ScrollController 資源
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
@@ -49,7 +41,6 @@ class _FoodPageState extends State<FoodPage> {
 
   // 滾動監聽函數
   void _scrollListener() {
-    // 判斷滾動方向
     if (_scrollController.position.userScrollDirection ==
             ScrollDirection.reverse &&
         _scrollController.offset > _lastScrollOffset &&
@@ -111,8 +102,7 @@ class _FoodPageState extends State<FoodPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 移除 AppBar
-      extendBodyBehindAppBar: true, // 保留此屬性以確保內容可以延伸到頂部
+      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
@@ -123,18 +113,18 @@ class _FoodPageState extends State<FoodPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // 搜尋欄，使用 AnimatedContainer 實現動畫效果
+              // 搜尋欄
               AnimatedContainer(
                 duration: Duration(milliseconds: 300),
-                height: _showSearchBar ? 92 : 0, // 包含 Padding 的高度
+                height: _showSearchBar ? 92 : 0,
                 curve: Curves.easeInOut,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0), // 增加邊距
+                  padding: const EdgeInsets.all(16.0),
                   child: Container(
                     height: 60,
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9), // 半透明白色背景
+                      color: Colors.white.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
@@ -146,10 +136,7 @@ class _FoodPageState extends State<FoodPage> {
                     ),
                     child: TextField(
                       decoration: InputDecoration(
-                        // 使用懸浮標籤行為，當獲得焦點或有文字時會將標籤移到上方
-                        floatingLabelBehavior:
-                            FloatingLabelBehavior.never, // 永不顯示懸浮標籤
-                        // 根據焦點狀態或文字輸入狀態決定是否顯示標籤
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
                         labelText:
                             _searchController.text.isNotEmpty ? null : '搜尋我的食譜',
                         labelStyle: TextStyle(
@@ -158,48 +145,31 @@ class _FoodPageState extends State<FoodPage> {
                         ),
                         hintText: '輸入食譜關鍵字',
                         hintStyle: TextStyle(color: Colors.grey[400]),
-                        prefixIcon: Icon(
-                          Icons.search,
-                          color: Colors.black,
-                        ), // 圖標顏色調整
-                        // 添加條件式清除按鈕
+                        prefixIcon: Icon(Icons.search, color: Colors.black),
                         suffixIcon:
                             _searchQuery.isNotEmpty
                                 ? IconButton(
-                                  icon: Icon(
-                                    Icons.clear,
-                                    color: Colors.amber[700],
-                                  ),
+                                  icon: Icon(Icons.clear, color: Colors.black),
                                   onPressed: () {
                                     setState(() {
                                       _searchQuery = '';
-                                      // 清空 controller 的文字
                                       _searchController.clear();
                                     });
-                                    FocusScope.of(
-                                      context,
-                                    ).unfocus(); // 選擇性地取消焦點
+                                    FocusScope.of(context).unfocus();
                                   },
                                 )
                                 : null,
-                        border: InputBorder.none, // 去除原有邊框
+                        border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
                           vertical: 15.0,
                           horizontal: 15.0,
-                        ), // 調整內邊距
+                        ),
                       ),
                       onChanged: (value) {
                         setState(() {
                           _searchQuery = value;
                         });
                       },
-                      // 新增獲得焦點時的行為，讓標籤消失
-                      onTap: () {
-                        setState(() {
-                          // 強制更新 UI 以應用新的裝飾設定
-                        });
-                      },
-                      // 使用類別成員變數的 controller
                       controller: _searchController,
                     ),
                   ),
@@ -267,7 +237,7 @@ class _FoodPageState extends State<FoodPage> {
                                 }
 
                                 return GridView.builder(
-                                  controller: _scrollController, // 使用滾動控制器
+                                  controller: _scrollController,
                                   padding: EdgeInsets.all(16.0),
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
@@ -290,7 +260,6 @@ class _FoodPageState extends State<FoodPage> {
                                                 ),
                                           ),
                                         ).then((_) {
-                                          // 從食譜詳情頁返回時重新載入食譜
                                           _loadUserRecipes();
                                         });
                                       },
@@ -318,49 +287,40 @@ class _FoodPageState extends State<FoodPage> {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Stack(
-                                                  children: [
-                                                    AspectRatio(
-                                                      aspectRatio: 1.5,
-                                                      child: Image.network(
-                                                        recipe['imageUrl'] ??
-                                                            '',
-                                                        fit: BoxFit.cover,
-                                                        loadingBuilder: (
+                                                AspectRatio(
+                                                  aspectRatio: 1.5,
+                                                  child: Image.network(
+                                                    recipe['imageUrl'] ?? '',
+                                                    fit: BoxFit.cover,
+                                                    loadingBuilder: (
+                                                      context,
+                                                      child,
+                                                      loadingProgress,
+                                                    ) {
+                                                      if (loadingProgress ==
+                                                          null)
+                                                        return child;
+                                                      return Center(
+                                                        child:
+                                                            CircularProgressIndicator(),
+                                                      );
+                                                    },
+                                                    errorBuilder:
+                                                        (
                                                           context,
-                                                          child,
-                                                          loadingProgress,
-                                                        ) {
-                                                          if (loadingProgress ==
-                                                              null)
-                                                            return child;
-                                                          return Center(
-                                                            child:
-                                                                CircularProgressIndicator(),
-                                                          );
-                                                        },
-                                                        errorBuilder:
-                                                            (
-                                                              context,
-                                                              error,
-                                                              stackTrace,
-                                                            ) => Container(
-                                                              color: Colors
-                                                                  .grey[200]!
-                                                                  .withOpacity(
-                                                                    0.5,
-                                                                  ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .restaurant,
-                                                                size: 50,
-                                                                color:
-                                                                    Colors.grey,
-                                                              ),
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ],
+                                                          error,
+                                                          stackTrace,
+                                                        ) => Container(
+                                                          color: Colors
+                                                              .grey[200]!
+                                                              .withOpacity(0.5),
+                                                          child: Icon(
+                                                            Icons.restaurant,
+                                                            size: 50,
+                                                            color: Colors.grey,
+                                                          ),
+                                                        ),
+                                                  ),
                                                 ),
                                                 Padding(
                                                   padding: const EdgeInsets.all(
@@ -496,7 +456,6 @@ class _FoodPageState extends State<FoodPage> {
       if (timestamp is DateTime) {
         date = timestamp;
       } else if (timestamp.toDate != null) {
-        // Firestore Timestamp
         date = timestamp.toDate();
       } else {
         return '未知時間';

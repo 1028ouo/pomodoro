@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:ui'; // 添加此行以引入 BackdropFilter
-import 'package:flutter/rendering.dart'; // Add this import for ScrollDirection
-
-import '../models/food_model.dart';
-import '../services/food_service.dart';
+import 'dart:ui';
+import 'package:flutter/rendering.dart';
 import '../services/recipe_service.dart';
 import 'food_detail_page.dart';
 
@@ -15,7 +12,6 @@ class FoodPage extends StatefulWidget {
 }
 
 class _FoodPageState extends State<FoodPage> {
-  final FoodService _foodService = FoodService();
   final FirebaseService _firebaseService = FirebaseService();
   late Future<List<Map<String, dynamic>>> _userRecipes;
   String _searchQuery = '';

@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -235,6 +236,63 @@ class AuthService {
       };
     } catch (e) {
       developer.log('Facebook登入出現未知錯誤', error: e.toString());
+      return {'success': false, 'message': '登入失敗: ${e.toString()}'};
+    }
+  }
+
+  // Twitter登入方法
+  Future<Map<String, dynamic>> signInWithTwitter() async {
+    try {
+      developer.log('開始Twitter登入流程');
+
+      TwitterAuthProvider twitterProvider = TwitterAuthProvider();
+      // 添加強制登入參數，防止自動登入
+      // twitterProvider.setCustomParameters({'force_login': 'true'});
+
+      // 根據平台選擇不同的登入方法
+      UserCredential userCredential;
+      if (kIsWeb) {
+        userCredential = await _auth.signInWithPopup(twitterProvider);
+      } else {
+        userCredential = await _auth.signInWithProvider(twitterProvider);
+      }
+
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // 檢查用戶是否已存在於Firestore
+        final docRef = _firestore.collection('users').doc(user.uid);
+        final docSnapshot = await docRef.get();
+
+        // 如果用戶不存在，創建新的用戶資料
+        if (!docSnapshot.exists) {
+          String profilePicId = getRandomProfilePicId();
+
+          await docRef.set({
+            'username': user.displayName ?? '使用者',
+            'email': user.email ?? '',
+            'birthday': '', // 為Twitter用戶設置空生日
+            'joinedAt': DateTime.now().toIso8601String(),
+            'totalFocusTime': 0,
+            'streakDays': 0,
+            'weeklyFocusTime': 0,
+            'completedPomodoros': 0,
+            'profilePicId': profilePicId,
+          });
+        }
+
+        return {'success': true, 'user': user};
+      } else {
+        return {'success': false, 'message': '無法使用Twitter登入'};
+      }
+    } on FirebaseAuthException catch (e) {
+      developer.log('Firebase認證錯誤', error: '${e.code}: ${e.message}');
+      return {
+        'success': false,
+        'message': '登入失敗: ${_getErrorMessage(e.code)}\n詳細信息: ${e.message}',
+      };
+    } catch (e) {
+      developer.log('Twitter登入出現未知錯誤', error: e.toString());
       return {'success': false, 'message': '登入失敗: ${e.toString()}'};
     }
   }

@@ -45,7 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<!-- Google Sign-in Section -->
+	<!-- Google/FB Sign-in Section -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -53,12 +53,24 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Copied from GoogleService-Info.plist key REVERSED_CLIENT_ID -->
+				<string>fb3781283642016589</string>
 				<string>com.googleusercontent.apps.240984632507-f8ethoorbscpb3btkmctso8pmlubnvmq</string>
 			</array>
 		</dict>
 	</array>
-	<!-- End of the Google Sign-in Section -->
+	<!-- End of the Google/FB Sign-in Section -->
+	<key>FacebookAppID</key>
+	<string>3781283642016589</string>
+	<key>FacebookClientToken</key>
+	<string>73d7cb7c0db18fc1bd5ca5521ef3ea59</string>
+	<key>FacebookDisplayName</key>
+	<string>flutter-final-project</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+	</array>
+
 	<key>NSCameraUsageDescription</key>
 	<string>需要相機權限以拍攝並上傳頭像照片</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -265,6 +265,55 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // 處理Twitter登入
+  Future<void> _handleTwitterSignIn() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    try {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Twitter登入處理中...')));
+
+      final result = await _authService.signInWithTwitter();
+
+      if (result['success']) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Twitter登入成功！')));
+
+          // 登入成功後導航到首頁
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Twitter登入失敗: ${result['message']}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('發生錯誤: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -447,6 +496,33 @@ class _LoginPageState extends State<LoginPage> {
                         label: const Text('使用 Facebook 登入'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF1877F3),
+                          foregroundColor: Colors.white,
+                          side: BorderSide(color: Colors.grey.shade300),
+                        ),
+                      ),
+                    ),
+
+                    // 添加Twitter登入按鈕
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _handleTwitterSignIn,
+                        icon: Container(
+                          child: Text(
+                            'X',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          margin: EdgeInsets.only(right: 4),
+                        ),
+                        label: const Text('使用 X 登入'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
                           foregroundColor: Colors.white,
                           side: BorderSide(color: Colors.grey.shade300),
                         ),

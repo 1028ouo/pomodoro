@@ -1,6 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
+import 'dart:math';
+import 'dart:developer' as developer;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -115,6 +120,125 @@ class AuthService {
     }
   }
 
+  // Facebook登入方法 - 更新為更安全的實現
+  Future<Map<String, dynamic>> signInWithFacebook() async {
+    try {
+      developer.log('開始Facebook登入流程');
+
+      // 生成一次性數字(nonce)來增加安全性
+      final rawNonce = generateNonce();
+      final nonce = sha256ofString(rawNonce);
+
+      // 啟動Facebook登入流程，使用nonce增加安全性
+      final LoginResult loginResult = await FacebookAuth.instance.login(
+        loginTracking: LoginTracking.enabled,
+        nonce: nonce,
+      );
+
+      developer.log('Facebook登入結果: ${loginResult.status.name}');
+
+      if (loginResult.status != LoginStatus.success) {
+        developer.log(
+          'Facebook登入失敗',
+          error: '狀態: ${loginResult.status}, 消息: ${loginResult.message}',
+        );
+        return {
+          'success': false,
+          'message': 'Facebook登入失敗: ${loginResult.message}',
+        };
+      }
+
+      if (loginResult.accessToken == null) {
+        developer.log('Facebook token為空');
+        return {'success': false, 'message': 'Facebook登入失敗: 無法獲取訪問令牌'};
+      }
+
+      developer.log('已獲取Facebook令牌，準備處理不同類型的令牌');
+
+      // 根據令牌類型選擇適當的憑證創建方式
+      OAuthCredential facebookAuthCredential;
+
+      try {
+        // 檢查令牌類型並處理
+        if (loginResult.accessToken is ClassicToken) {
+          final token = loginResult.accessToken as ClassicToken;
+          developer.log('使用ClassicToken處理');
+          facebookAuthCredential = FacebookAuthProvider.credential(
+            token.authenticationToken ?? token.tokenString,
+          );
+        } else if (loginResult.accessToken is LimitedToken) {
+          final token = loginResult.accessToken as LimitedToken;
+          developer.log('使用LimitedToken處理');
+          facebookAuthCredential = OAuthCredential(
+            providerId: 'facebook.com',
+            signInMethod: 'oauth',
+            idToken: token.tokenString,
+            rawNonce: rawNonce,
+          );
+        } else {
+          // 如果無法確定具體類型，使用通用方法
+          developer.log('使用通用方法處理令牌');
+          facebookAuthCredential = FacebookAuthProvider.credential(
+            loginResult.accessToken!.tokenString,
+          );
+        }
+      } catch (e) {
+        developer.log('處理Facebook令牌時出錯', error: e.toString());
+        // 使用標準處理作為備用方案
+        facebookAuthCredential = FacebookAuthProvider.credential(
+          loginResult.accessToken!.tokenString,
+        );
+      }
+
+      if (facebookAuthCredential == null) {
+        return {'success': false, 'message': 'Facebook登入失敗: 無法創建有效憑證'};
+      }
+
+      // 使用Facebook憑證登入Firebase
+      developer.log('嘗試使用Facebook憑證登入Firebase');
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        facebookAuthCredential,
+      );
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // 檢查用戶是否已存在於Firestore
+        final docRef = _firestore.collection('users').doc(user.uid);
+        final docSnapshot = await docRef.get();
+
+        // 如果用戶不存在，創建新的用戶資料
+        if (!docSnapshot.exists) {
+          String profilePicId = getRandomProfilePicId();
+
+          await docRef.set({
+            'username': user.displayName ?? '使用者',
+            'email': user.email ?? '',
+            'birthday': '', // 為Facebook用戶設置空生日
+            'joinedAt': DateTime.now().toIso8601String(),
+            'totalFocusTime': 0,
+            'streakDays': 0,
+            'weeklyFocusTime': 0,
+            'completedPomodoros': 0,
+            'profilePicId': profilePicId,
+          });
+        }
+
+        return {'success': true, 'user': user};
+      } else {
+        return {'success': false, 'message': '無法使用Facebook登入'};
+      }
+    } on FirebaseAuthException catch (e) {
+      developer.log('Firebase認證錯誤', error: '${e.code}: ${e.message}');
+      return {
+        'success': false,
+        'message': '登入失敗: ${_getErrorMessage(e.code)}\n詳細信息: ${e.message}',
+      };
+    } catch (e) {
+      developer.log('Facebook登入出現未知錯誤', error: e.toString());
+      return {'success': false, 'message': '登入失敗: ${e.toString()}'};
+    }
+  }
+
   // 忘記密碼方法
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
@@ -191,5 +315,23 @@ class AuthService {
       default:
         return '發生錯誤: $code';
     }
+  }
+
+  // 生成一次性數字方法
+  String generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  // SHA-256哈希方法
+  String sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }

@@ -215,6 +215,56 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // 處理Facebook登入
+  Future<void> _handleFacebookSignIn() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    try {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Facebook登入處理中...')));
+
+      final result = await _authService.signInWithFacebook();
+
+      if (result['success']) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Facebook登入成功！')));
+
+          // 登入成功後導航到首頁
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Facebook登入失敗: ${result['message']}')),
+          );
+          print('登入失敗：${result['message']}');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('發生錯誤: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -380,6 +430,24 @@ class _LoginPageState extends State<LoginPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.black87,
+                          side: BorderSide(color: Colors.grey.shade300),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _handleFacebookSignIn,
+                        icon: Image.network(
+                          'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png',
+                          height: 24.0,
+                        ),
+                        label: const Text('使用 Facebook 登入'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF1877F3),
+                          foregroundColor: Colors.white,
                           side: BorderSide(color: Colors.grey.shade300),
                         ),
                       ),

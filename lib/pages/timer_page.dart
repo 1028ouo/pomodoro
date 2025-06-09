@@ -462,8 +462,8 @@ class _HomeContentState extends State<HomeContent>
                                       ),
                                       const SizedBox(height: 5),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
+                                        padding: const EdgeInsets.only(
+                                          left: 12,
                                         ),
                                         child: TweenAnimationBuilder<double>(
                                           tween: Tween<double>(
@@ -479,7 +479,7 @@ class _HomeContentState extends State<HomeContent>
                                               child: Text(
                                                 timerManager.formatTime(),
                                                 style: const TextStyle(
-                                                  fontSize: 40,
+                                                  fontSize: 37,
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.black,
                                                 ),

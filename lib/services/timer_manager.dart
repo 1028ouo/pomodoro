@@ -12,11 +12,11 @@ class TimerManager {
   // 建構函數
   TimerManager({
     // 正式
-    // this.focusTimeSeconds = 25 * 60,
-    // this.breakTimeSeconds = 5 * 60,
+    this.focusTimeSeconds = 25 * 60,
+    this.breakTimeSeconds = 5 * 60,
     // 測試用
-    this.focusTimeSeconds = 6,
-    this.breakTimeSeconds = 6,
+    // this.focusTimeSeconds = 6,
+    // this.breakTimeSeconds = 6,
   }) {
     reset();
   }

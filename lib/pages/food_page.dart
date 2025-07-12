@@ -16,6 +16,8 @@ class _FoodPageState extends State<FoodPage> {
   late Future<List<Map<String, dynamic>>> _userRecipes;
   String _searchQuery = '';
   bool _isLoading = false;
+  bool _hasNetworkError = false; // 網路錯誤狀態追蹤
+  String _errorMessage = ''; // 新增：儲存具體錯誤訊息
   late TextEditingController _searchController;
   late ScrollController _scrollController;
   bool _showSearchBar = true;
@@ -67,12 +69,27 @@ class _FoodPageState extends State<FoodPage> {
   Future<void> _loadUserRecipes() async {
     setState(() {
       _isLoading = true;
+      _hasNetworkError = false; // 重置網路錯誤狀態
+      _errorMessage = ''; // 重置錯誤訊息
     });
 
     try {
       _userRecipes = _firebaseService.getUserRecipes();
     } catch (e) {
       print('載入食譜失敗: $e');
+      setState(() {
+        _hasNetworkError = true; // 設置網路錯誤狀態
+        // 設置具體的錯誤訊息
+        if (e.toString().contains('network')) {
+          _errorMessage = '網路連線問題，請檢查您的網路設定';
+        } else if (e.toString().contains('permission')) {
+          _errorMessage = '權限問題，無法存取資料';
+        } else if (e.toString().contains('timeout')) {
+          _errorMessage = '連線逾時，請稍後再試';
+        } else {
+          _errorMessage = '發生錯誤：${e.toString()}';
+        }
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -97,6 +114,71 @@ class _FoodPageState extends State<FoodPage> {
           ),
         )
         .toList();
+  }
+
+  // 顯示網路錯誤UI
+  Widget _buildNetworkErrorView() {
+    return Center(
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _errorMessage.contains('網路')
+                  ? Icons.wifi_off
+                  : Icons.error_outline,
+              size: 80,
+              color: Colors.red.shade400,
+            ),
+            SizedBox(height: 24),
+            Text(
+              _errorMessage.isNotEmpty ? _errorMessage : '無法載入資料',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade400,
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '請檢查您的連線狀態後重試',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+            ),
+            SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                _loadUserRecipes();
+              },
+              icon: Icon(Icons.refresh),
+              label: Text('重新整理'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.brown.shade400,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -181,6 +263,8 @@ class _FoodPageState extends State<FoodPage> {
                 child:
                     _isLoading
                         ? Center(child: CircularProgressIndicator())
+                        : _hasNetworkError
+                        ? _buildNetworkErrorView() // 顯示網路錯誤視圖
                         : RefreshIndicator(
                           onRefresh: () async {
                             await _loadUserRecipes();
@@ -194,6 +278,7 @@ class _FoodPageState extends State<FoodPage> {
                                   child: CircularProgressIndicator(),
                                 );
                               } else if (snapshot.hasError) {
+                                // 處理其他錯誤
                                 return Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -205,6 +290,17 @@ class _FoodPageState extends State<FoodPage> {
                                       ),
                                       SizedBox(height: 16),
                                       Text('錯誤: ${snapshot.error}'),
+                                      SizedBox(height: 16),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          _loadUserRecipes();
+                                        },
+                                        child: Text('重試'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              Colors.brown.shade200,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 );

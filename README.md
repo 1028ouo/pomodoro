@@ -9,6 +9,7 @@
 ## 教學影片與參考文章
 
 - 在 YouTube 上觀看展示影片：
+
 [![觀看示範影片](https://img.youtube.com/vi/F4gv5pTWkPo/hqdefault.jpg)](https://youtu.be/F4gv5pTWkPo)
 
 - 相關教學文章（Medium）：

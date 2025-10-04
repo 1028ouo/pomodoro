@@ -1,6 +1,27 @@
 # Pomodoro 專注計時器
+![Flutter](https://img.shields.io/badge/Flutter-3.7.2-blue?logo=flutter)
+![Dart](https://img.shields.io/badge/Dart-%5E3-blue?logo=dart)
+![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore-ffca28?logo=firebase)
 
-一款專為幫助使用者提高專注力與工作效率所設計的番茄鐘應用程式。此應用程式基於番茄工作法（Pomodoro Technique）原理，協助使用者在工作和休息之間取得平衡。
+![專案封面](https://miro.medium.com/v2/resize:fit:4800/format:webp/1*FgQ7JRLWNsyTg-ERp3WQqQ.png)
+
+
+## 教學影片與參考文章
+
+- 在 YouTube 上觀看展示影片：
+[![觀看示範影片](https://img.youtube.com/vi/F4gv5pTWkPo/hqdefault.jpg)](https://youtu.be/F4gv5pTWkPo)
+
+- 相關教學文章（Medium）：
+https://medium.com/%E6%B5%B7%E5%A4%A7-ios-app-%E7%A8%8B%E5%BC%8F%E8%A8%AD%E8%A8%88/5-flutter-pomodoro-bb1b79c6cb1c
+
+
+## 目錄
+- [安裝指南](#安裝指南)
+- [功能特色](#功能特色)
+- [技術堆疊](#技術堆疊)
+- [專案結構](#專案結構)
+- [使用說明](#使用說明)
+
 
 ## 功能特色
 
@@ -72,7 +93,7 @@ lib/
 ├── pages/                    # 頁面
 │   ├── home_page.dart        # 首頁
 │   ├── login_page.dart       # 登入頁面
-│   ├── timer_page.dart       # 個人資料頁面
+│   ├── timer_page.dart       # 計時器頁面
 │   └── ...
 ├── services/                 # 服務層（Firebase等）
 └── models/                   # 資料模型
